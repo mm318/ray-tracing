@@ -19,6 +19,10 @@ impl HitRecord {
         };
     }
 
+    pub fn point(&self) -> &ray::Vector {
+        return &self.p;
+    }
+
     pub fn normal(&self) -> &ray::Vector {
         return &self.normal;
     }

@@ -1,4 +1,12 @@
 mod inner {
+    use rand::Rng;
+
+    pub fn random_double(min: &f32, max: &f32) -> f32 {
+        thread_local!(static RNG_STORAGE : std::cell::RefCell<rand::prelude::ThreadRng> 
+            = std::cell::RefCell::new(rand::thread_rng()));
+        return RNG_STORAGE.with(|rng_ref| return rng_ref.borrow_mut().gen_range(*min..*max));
+    }
+
     pub trait Sqrt {
         fn square_root(&self) -> Self;
     }
@@ -64,6 +72,31 @@ impl<T: inner::Vec3Elem> Vec3<T> {
     }
 }
 
+impl Vec3<f32> {
+    pub fn random(min: &f32, max: &f32) -> Self {
+        return Self {
+            e: [
+                inner::random_double(min, max),
+                inner::random_double(min, max),
+                inner::random_double(min, max),
+            ],
+        };
+    }
+
+    pub fn random_in_unit_sphere() -> Self {
+        loop {
+            let p = Self::random(&-1.0, &1.0);
+            if p.length_squared() >= 1.0 {
+                continue;
+            }
+            return p;
+        }
+    }
+}
+
+//
+// Vec3 Index Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Index<usize> for Vec3<T> {
     type Output = T;
     fn index(&self, i: usize) -> &Self::Output {
@@ -77,6 +110,9 @@ impl<T: inner::Vec3Elem> std::ops::IndexMut<usize> for Vec3<T> {
     }
 }
 
+//
+// Vec3 Negate Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Neg for Vec3<T> {
     type Output = Vec3<T>;
     fn neg(self) -> Self::Output {
@@ -91,6 +127,9 @@ impl<T: inner::Vec3Elem> std::ops::Neg for &Vec3<T> {
     }
 }
 
+//
+// Vec3 Add Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Add<Vec3<T>> for Vec3<T> {
     type Output = Vec3<T>;
     fn add(self, other: Vec3<T>) -> Self::Output {
@@ -131,6 +170,9 @@ impl<T: inner::Vec3Elem> std::ops::AddAssign<&Vec3<T>> for Vec3<T> {
     }
 }
 
+//
+// Vec3 Subtract Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Sub<Vec3<T>> for Vec3<T> {
     type Output = Vec3<T>;
     fn sub(self, other: Vec3<T>) -> Self::Output {
@@ -171,6 +213,9 @@ impl<T: inner::Vec3Elem> std::ops::SubAssign<&Vec3<T>> for Vec3<T> {
     }
 }
 
+//
+// Vec3 Multiply Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Mul<T> for Vec3<T> {
     type Output = Vec3<T>;
     fn mul(self, other: T) -> Self::Output {
@@ -211,6 +256,9 @@ impl<T: inner::Vec3Elem> std::ops::MulAssign<&T> for Vec3<T> {
     }
 }
 
+//
+// Vec3 Divide Operators
+//
 impl<T: inner::Vec3Elem> std::ops::Div<T> for Vec3<T> {
     type Output = Vec3<T>;
     fn div(self, other: T) -> Self::Output {
@@ -251,6 +299,9 @@ impl<T: inner::Vec3Elem> std::ops::DivAssign<&T> for Vec3<T> {
     }
 }
 
+//
+// Vec3 Vector Operations
+//
 pub fn dot<T: inner::Vec3Elem>(u: &Vec3<T>, v: &Vec3<T>) -> T {
     return (u.x() * v.x()) + (u.y() * v.y()) + (u.z() * v.z());
 }

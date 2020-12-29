@@ -19,10 +19,19 @@ fn hit_sphere(center: &ray::Point, radius: &f32, r: &ray::Ray) -> f32 {
     }
 }
 
-fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable) -> color::Color {
+fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
+    if depth <= 0 {
+        return color::Color::new(0.0, 0.0, 0.0);
+    }
+
     let mut rec = hittable::HitRecord::new();
     if world.hit(&r, &0.0, &f32::INFINITY, &mut rec) {
-        return (rec.normal() + color::Color::new(1.0, 1.0, 1.0)) * 0.5;
+        let target = rec.point() + rec.normal() + ray::Vector::random_in_unit_sphere();
+        return ray_color(
+            &ray::Ray::new(rec.point().clone(), target - rec.point()),
+            world,
+            depth - 1,
+        ) * 0.5;
     }
 
     let unit_direction = r.direction().unit_vector();
@@ -35,6 +44,7 @@ fn render(
     image_height: &usize,
     cam: &camera::Camera,
     samples_per_pixel: &usize,
+    max_depth: &u32,
     world: &dyn hittable::Hittable,
 ) {
     let mut rng = rand::thread_rng();
@@ -50,7 +60,7 @@ fn render(
                 let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
                 let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
                 let r = cam.get_ray(&u, &v);
-                pixel_color += &ray_color(&r, world);
+                pixel_color += &ray_color(&r, world, *max_depth);
             }
             buffer[row_offset + i] = color::write_color(&pixel_color, samples_per_pixel);
         }
@@ -70,6 +80,7 @@ fn main() {
     let image_width = 400 as usize;
     let image_height = (image_width as f32 / aspect_ratio) as usize;
     let samples_per_pixel = 100 as usize;
+    let max_depth = 50 as u32;
 
     // World
     let mut world = hittable::HittableList::new_empty();
@@ -91,6 +102,7 @@ fn main() {
         &image_height,
         &cam,
         &samples_per_pixel,
+        &max_depth,
         &world,
     );
 }
