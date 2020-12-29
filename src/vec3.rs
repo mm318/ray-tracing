@@ -84,6 +84,13 @@ impl<T: inner::Vec3Elem> std::ops::Neg for Vec3<T> {
     }
 }
 
+impl<T: inner::Vec3Elem> std::ops::Neg for &Vec3<T> {
+    type Output = Vec3<T>;
+    fn neg(self) -> Self::Output {
+        return Self::Output::new(-self.x(), -self.y(), -self.z());
+    }
+}
+
 impl<T: inner::Vec3Elem> std::ops::Add<Vec3<T>> for Vec3<T> {
     type Output = Vec3<T>;
     fn add(self, other: Vec3<T>) -> Self::Output {
