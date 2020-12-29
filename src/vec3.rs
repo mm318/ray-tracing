@@ -77,7 +77,6 @@ impl<T: inner::Vec3Elem> std::ops::IndexMut<usize> for Vec3<T> {
     }
 }
 
-
 impl<T: inner::Vec3Elem> std::ops::Neg for Vec3<T> {
     type Output = Vec3<T>;
     fn neg(self) -> Self::Output {
@@ -85,26 +84,28 @@ impl<T: inner::Vec3Elem> std::ops::Neg for Vec3<T> {
     }
 }
 
-
 impl<T: inner::Vec3Elem> std::ops::Add<Vec3<T>> for Vec3<T> {
     type Output = Vec3<T>;
     fn add(self, other: Vec3<T>) -> Self::Output {
-        return &self + other;
+        return &self + &other;
     }
 }
 
 impl<T: inner::Vec3Elem> std::ops::Add<Vec3<T>> for &Vec3<T> {
     type Output = Vec3<T>;
     fn add(self, other: Vec3<T>) -> Self::Output {
-        return Self::Output::new(
-            self.x() + other.x(),
-            self.y() + other.y(),
-            self.z() + other.z(),
-        );
+        return self + &other;
     }
 }
 
 impl<T: inner::Vec3Elem> std::ops::Add<&Vec3<T>> for Vec3<T> {
+    type Output = Vec3<T>;
+    fn add(self, other: &Vec3<T>) -> Self::Output {
+        return &self + other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Add<&Vec3<T>> for &Vec3<T> {
     type Output = Vec3<T>;
     fn add(self, other: &Vec3<T>) -> Self::Output {
         return Self::Output::new(
@@ -115,7 +116,6 @@ impl<T: inner::Vec3Elem> std::ops::Add<&Vec3<T>> for Vec3<T> {
     }
 }
 
-
 impl<T: inner::Vec3Elem> std::ops::AddAssign<&Vec3<T>> for Vec3<T> {
     fn add_assign(&mut self, other: &Vec3<T>) {
         self[0] += other.x();
@@ -123,7 +123,6 @@ impl<T: inner::Vec3Elem> std::ops::AddAssign<&Vec3<T>> for Vec3<T> {
         self[2] += other.z();
     }
 }
-
 
 impl<T: inner::Vec3Elem> std::ops::Sub<Vec3<T>> for Vec3<T> {
     type Output = Vec3<T>;
@@ -157,7 +156,6 @@ impl<T: inner::Vec3Elem> std::ops::Sub<&Vec3<T>> for &Vec3<T> {
     }
 }
 
-
 impl<T: inner::Vec3Elem> std::ops::SubAssign<&Vec3<T>> for Vec3<T> {
     fn sub_assign(&mut self, other: &Vec3<T>) {
         self[0] -= other.x();
@@ -166,35 +164,28 @@ impl<T: inner::Vec3Elem> std::ops::SubAssign<&Vec3<T>> for Vec3<T> {
     }
 }
 
-
 impl<T: inner::Vec3Elem> std::ops::Mul<T> for Vec3<T> {
     type Output = Vec3<T>;
     fn mul(self, other: T) -> Self::Output {
-        return &self * other;
+        return &self * &other;
     }
 }
 
 impl<T: inner::Vec3Elem> std::ops::Mul<T> for &Vec3<T> {
     type Output = Vec3<T>;
     fn mul(self, other: T) -> Self::Output {
-        return Self::Output::new(
-            self.x() * other.clone(),
-            self.y() * other.clone(),
-            self.z() * other.clone(),
-        );
-    }
-}
-
-
-impl<T: inner::Vec3Elem> std::ops::MulAssign<&T> for Vec3<T> {
-    fn mul_assign(&mut self, other: &T) {
-        self[0] *= other.clone();
-        self[1] *= other.clone();
-        self[2] *= other.clone();
+        return self * &other;
     }
 }
 
 impl<T: inner::Vec3Elem> std::ops::Mul<&T> for Vec3<T> {
+    type Output = Vec3<T>;
+    fn mul(self, other: &T) -> Self::Output {
+        return &self * other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Mul<&T> for &Vec3<T> {
     type Output = Vec3<T>;
     fn mul(self, other: &T) -> Self::Output {
         return Self::Output::new(
@@ -205,16 +196,38 @@ impl<T: inner::Vec3Elem> std::ops::Mul<&T> for Vec3<T> {
     }
 }
 
+impl<T: inner::Vec3Elem> std::ops::MulAssign<&T> for Vec3<T> {
+    fn mul_assign(&mut self, other: &T) {
+        self[0] *= other.clone();
+        self[1] *= other.clone();
+        self[2] *= other.clone();
+    }
+}
+
 impl<T: inner::Vec3Elem> std::ops::Div<T> for Vec3<T> {
     type Output = Vec3<T>;
     fn div(self, other: T) -> Self::Output {
-        return &self / other;
+        return &self / &other;
     }
 }
 
 impl<T: inner::Vec3Elem> std::ops::Div<T> for &Vec3<T> {
     type Output = Vec3<T>;
     fn div(self, other: T) -> Self::Output {
+        return self / &other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Div<&T> for Vec3<T> {
+    type Output = Vec3<T>;
+    fn div(self, other: &T) -> Self::Output {
+        return &self / other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Div<&T> for &Vec3<T> {
+    type Output = Vec3<T>;
+    fn div(self, other: &T) -> Self::Output {
         return Self::Output::new(
             self.x() / other.clone(),
             self.y() / other.clone(),
@@ -228,17 +241,6 @@ impl<T: inner::Vec3Elem> std::ops::DivAssign<&T> for Vec3<T> {
         self[0] /= other.clone();
         self[1] /= other.clone();
         self[2] /= other.clone();
-    }
-}
-
-impl<T: inner::Vec3Elem> std::ops::Div<&T> for Vec3<T> {
-    type Output = Vec3<T>;
-    fn div(self, other: &T) -> Self::Output {
-        return Self::Output::new(
-            self.x() / other.clone(),
-            self.y() / other.clone(),
-            self.z() / other.clone(),
-        );
     }
 }
 

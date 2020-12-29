@@ -1,8 +1,8 @@
 // use std::io::Write;
 mod color;
+mod hittable;
 mod ray;
 mod vec3;
-mod hittable;
 
 fn hit_sphere(center: &ray::Point, radius: &f32, r: &ray::Ray) -> f32 {
     let oc = r.origin() - center.clone();
