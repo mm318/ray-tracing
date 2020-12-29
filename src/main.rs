@@ -1,4 +1,6 @@
 // use std::io::Write;
+use rand::Rng;
+mod camera;
 mod color;
 mod hittable;
 mod ray;
@@ -28,76 +30,14 @@ fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable) -> color::Color {
     return color::Color::new(1.0, 1.0, 1.0) * (1.0 - t) + color::Color::new(0.5, 0.7, 1.0) * t;
 }
 
-/*
-fn render_ppm(image_width: &usize, image_height: &usize) {
-    let write_file = match std::fs::File::create("image.ppm") {
-        Ok(file) => file,
-        Err(err) => {
-            println!("error: {:?}", err);
-            return;
-        }
-    };
-    let mut writer = std::io::BufWriter::new(&write_file);
-
-    // Render
-    match writeln!(&mut writer, "P3\n{} {}\n255", image_width, image_height) {
-        Ok(_) => {}
-        Err(err) => println!("error: {:?}", err),
-    }
-
-    for j in (0..*image_height).rev() {
-        for i in 0..*image_width {
-            let r = i as f32 / (image_width - 1) as f32;
-            let g = j as f32 / (image_height - 1) as f32;
-            let b = 0.25;
-
-            let ir = (255.999 * r) as u8;
-            let ig = (255.999 * g) as u8;
-            let ib = (255.999 * b) as u8;
-
-            match writeln!(&mut writer, "{} {} {}", ir, ig, ib) {
-                Ok(_) => {}
-                Err(err) => println!("error: {:?}", err),
-            }
-        }
-    }
-}
-
-fn render_png(image_width: &usize, image_height: &usize) {
-    let mut buffer = vec![rgb::RGBA8::new(0, 0, 0, std::u8::MAX); image_width * image_height];
-
-    for j in 0..*image_height {
-        println!("Scanlines remaining: {}", image_height - j);
-        std::io::stdout().flush().unwrap();
-
-        let row_offset = (image_height - 1 - j) * image_width;
-        for i in 0..*image_width {
-            let r = i as f32 / (image_width - 1) as f32;
-            let g = j as f32 / (image_height - 1) as f32;
-            let b = 0.25;
-
-            buffer[row_offset + i] = color::write_color(&color::Color::new(r, g, b));
-        }
-    }
-    println!("Done");
-    // std::io::stdout().flush().unwrap();
-
-    match lodepng::encode32_file("image.png", &buffer, *image_width, *image_height) {
-        Ok(_) => println!("writing png succeeded"),
-        Err(err) => println!("error: {:?}", err),
-    }
-}
-*/
-
 fn render(
     image_width: &usize,
     image_height: &usize,
-    origin: &ray::Point,
-    lower_left_corner: &ray::Point,
-    horizontal: &ray::Vector,
-    vertical: &ray::Vector,
+    cam: &camera::Camera,
+    samples_per_pixel: &usize,
     world: &dyn hittable::Hittable,
 ) {
+    let mut rng = rand::thread_rng();
     let mut buffer = vec![rgb::RGBA8::new(0, 0, 0, std::u8::MAX); image_width * image_height];
 
     for j in 0..*image_height {
@@ -105,14 +45,14 @@ fn render(
         // std::io::stdout().flush().unwrap();
         let row_offset = (image_height - 1 - j) * image_width;
         for i in 0..*image_width {
-            let u = i as f32 / (image_width - 1) as f32;
-            let v = j as f32 / (image_height - 1) as f32;
-            let r = ray::Ray::new(
-                origin.clone(),
-                lower_left_corner + horizontal * u + vertical * v - origin,
-            );
-            let pixel_color = ray_color(&r, world);
-            buffer[row_offset + i] = color::write_color(&pixel_color);
+            let mut pixel_color = color::Color::new(0.0, 0.0, 0.0);
+            for _s in 0..*samples_per_pixel {
+                let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
+                let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
+                let r = cam.get_ray(&u, &v);
+                pixel_color += &ray_color(&r, world);
+            }
+            buffer[row_offset + i] = color::write_color(&pixel_color, samples_per_pixel);
         }
     }
     println!("Done");
@@ -129,6 +69,7 @@ fn main() {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 400 as usize;
     let image_height = (image_width as f32 / aspect_ratio) as usize;
+    let samples_per_pixel = 100 as usize;
 
     // World
     let mut world = hittable::HittableList::new_empty();
@@ -142,26 +83,14 @@ fn main() {
     )));
 
     // Camera
-    let viewport_height = 2.0;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.0;
-
-    let origin = ray::Point::new(0.0, 0.0, 0.0);
-    let horizontal = ray::Vector::new(viewport_width, 0.0, 0.0);
-    let vertical = ray::Vector::new(0.0, viewport_height, 0.0);
-    let lower_left_corner =
-        &origin - &horizontal / 2.0 - &vertical / 2.0 - ray::Vector::new(0.0, 0.0, focal_length);
+    let cam = camera::Camera::new(&aspect_ratio);
 
     // Render
-    // render_ppm(&image_width, &image_height);
-    // render_png(&image_width, &image_height);
     render(
         &image_width,
         &image_height,
-        &origin,
-        &lower_left_corner,
-        &horizontal,
-        &vertical,
+        &cam,
+        &samples_per_pixel,
         &world,
     );
 }
