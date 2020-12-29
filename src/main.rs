@@ -1,10 +1,10 @@
 // use std::io::Write;
-use rand::Rng;
 mod camera;
 mod color;
 mod hittable;
 mod ray;
 mod vec3;
+mod utils;
 
 fn hit_sphere(center: &ray::Point, radius: &f32, r: &ray::Ray) -> f32 {
     let oc = r.origin() - center.clone();
@@ -25,7 +25,7 @@ fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color:
     }
 
     let mut rec = hittable::HitRecord::new();
-    if world.hit(&r, &0.0, &f32::INFINITY, &mut rec) {
+    if world.hit(&r, &0.001, &f32::INFINITY, &mut rec) {
         let target = rec.point() + rec.normal() + ray::Vector::random_in_unit_sphere();
         return ray_color(
             &ray::Ray::new(rec.point().clone(), target - rec.point()),
@@ -47,7 +47,6 @@ fn render(
     max_depth: &u32,
     world: &dyn hittable::Hittable,
 ) {
-    let mut rng = rand::thread_rng();
     let mut buffer = vec![rgb::RGBA8::new(0, 0, 0, std::u8::MAX); image_width * image_height];
 
     for j in 0..*image_height {
@@ -57,8 +56,8 @@ fn render(
         for i in 0..*image_width {
             let mut pixel_color = color::Color::new(0.0, 0.0, 0.0);
             for _s in 0..*samples_per_pixel {
-                let u = (i as f32 + rng.gen::<f32>()) / (image_width - 1) as f32;
-                let v = (j as f32 + rng.gen::<f32>()) / (image_height - 1) as f32;
+                let u = (i as f32 + utils::random_double(&0.0, &1.0)) / (image_width - 1) as f32;
+                let v = (j as f32 + utils::random_double(&0.0, &1.0)) / (image_height - 1) as f32;
                 let r = cam.get_ray(&u, &v);
                 pixel_color += &ray_color(&r, world, *max_depth);
             }

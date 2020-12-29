@@ -1,12 +1,6 @@
+use super::utils;
+
 mod inner {
-    use rand::Rng;
-
-    pub fn random_double(min: &f32, max: &f32) -> f32 {
-        thread_local!(static RNG_STORAGE : std::cell::RefCell<rand::prelude::ThreadRng> 
-            = std::cell::RefCell::new(rand::thread_rng()));
-        return RNG_STORAGE.with(|rng_ref| return rng_ref.borrow_mut().gen_range(*min..*max));
-    }
-
     pub trait Sqrt {
         fn square_root(&self) -> Self;
     }
@@ -76,9 +70,9 @@ impl Vec3<f32> {
     pub fn random(min: &f32, max: &f32) -> Self {
         return Self {
             e: [
-                inner::random_double(min, max),
-                inner::random_double(min, max),
-                inner::random_double(min, max),
+                utils::random_double(min, max),
+                utils::random_double(min, max),
+                utils::random_double(min, max),
             ],
         };
     }

@@ -1,4 +1,5 @@
 use super::vec3;
+use super::utils;
 
 pub type Color = vec3::Vec3<f32>;
 
@@ -16,30 +17,18 @@ impl Color {
     }
 }
 
-#[inline]
-fn clamp<T: PartialOrd>(input: T, min: T, max: T) -> T {
-    debug_assert!(min <= max, "min must be less than or equal to max");
-    if input < min {
-        return min;
-    } else if input > max {
-        return max;
-    } else {
-        return input;
-    }
-}
-
 pub fn write_color(pixel_color: &Color, samples_per_pixel: &usize) -> rgb::RGBA8 {
     let samples = *samples_per_pixel as f32;
 
-    // Divide the color by the number of samples.
-    let r = pixel_color.r() / samples;
-    let g = pixel_color.g() / samples;
-    let b = pixel_color.b() / samples;
+    // Divide the color by the number of samples and gamma-correct for gamma=2.0.
+    let r = (pixel_color.r() / samples).sqrt();
+    let g = (pixel_color.g() / samples).sqrt();
+    let b = (pixel_color.b() / samples).sqrt();
 
     // Write the translated [0,255] value of each color component.
-    let ir = (256.0 * clamp(r, 0.0, 0.999)) as u8;
-    let ig = (256.0 * clamp(g, 0.0, 0.999)) as u8;
-    let ib = (256.0 * clamp(b, 0.0, 0.999)) as u8;
+    let ir = (256.0 * utils::clamp(r, 0.0, 0.999)) as u8;
+    let ig = (256.0 * utils::clamp(g, 0.0, 0.999)) as u8;
+    let ib = (256.0 * utils::clamp(b, 0.0, 0.999)) as u8;
 
     return rgb::RGBA8::new(ir, ig, ib, std::u8::MAX);
 }
