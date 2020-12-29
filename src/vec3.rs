@@ -86,6 +86,19 @@ impl Vec3<f32> {
             return p;
         }
     }
+
+    pub fn random_unit_vector() -> Self {
+        return Self::random_in_unit_sphere().unit_vector();
+    }
+
+    pub fn random_in_hemisphere(normal: &Self) -> Self {
+        let in_unit_sphere = Self::random_in_unit_sphere();
+        if dot(&in_unit_sphere, normal) > 0.0 {
+            return in_unit_sphere;
+        } else {
+            return -in_unit_sphere;
+        }
+    }
 }
 
 //

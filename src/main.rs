@@ -26,7 +26,9 @@ fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color:
 
     let mut rec = hittable::HitRecord::new();
     if world.hit(&r, &0.001, &f32::INFINITY, &mut rec) {
-        let target = rec.point() + rec.normal() + ray::Vector::random_in_unit_sphere();
+        // let target = rec.point() + rec.normal() + ray::Vector::random_in_unit_sphere();
+        // let target = rec.point() + rec.normal() + ray::Vector::random_unit_vector();
+        let target = rec.point() + ray::Vector::random_in_hemisphere(rec.normal());
         return ray_color(
             &ray::Ray::new(rec.point().clone(), target - rec.point()),
             world,
