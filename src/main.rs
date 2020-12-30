@@ -7,6 +7,85 @@ mod ray;
 mod utils;
 mod vec3;
 
+fn random_scene() -> hittable::HittableList {
+    let mut world = hittable::HittableList::new_empty();
+
+    let ground_material =
+        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.5, 0.5, 0.5)));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(0.0, -1000.0, 0.0),
+        1000.0,
+        ground_material,
+    )));
+
+    let ref_point = ray::Point::new(4.0, 0.2, 0.0);
+    for a in -11..11 {
+        for b in -11..11 {
+            let choose_mat = utils::random_double(&0.0, &1.0);
+            let center = ray::Point::new(
+                a as f64 + 0.9 * utils::random_double(&0.0, &1.0),
+                0.2,
+                b as f64 + 0.9 * utils::random_double(&0.0, &1.0),
+            );
+
+            if (&center - &ref_point).length() > 0.9 {
+                if choose_mat < 0.8 {
+                    // diffuse
+                    let albedo =
+                        color::Color::random(&0.0, &1.0) * color::Color::random(&0.0, &1.0);
+                    let sphere_material = std::rc::Rc::new(material::Lambertian::new(albedo));
+                    world.add(Box::new(hittable::Sphere::new(
+                        center,
+                        0.2,
+                        sphere_material,
+                    )));
+                } else if choose_mat < 0.95 {
+                    // metal
+                    let albedo = color::Color::random(&0.5, &1.0);
+                    let fuzz = utils::random_double(&0.0, &0.5);
+                    let sphere_material = std::rc::Rc::new(material::Metal::new(albedo, fuzz));
+                    world.add(Box::new(hittable::Sphere::new(
+                        center,
+                        0.2,
+                        sphere_material,
+                    )));
+                } else {
+                    // glass
+                    let sphere_material = std::rc::Rc::new(material::Dielectric::new(1.5));
+                    world.add(Box::new(hittable::Sphere::new(
+                        center,
+                        0.2,
+                        sphere_material,
+                    )));
+                }
+            }
+        }
+    }
+
+    let material1 = std::rc::Rc::new(material::Dielectric::new(1.5));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(0.0, 1.0, 0.0),
+        1.0,
+        material1,
+    )));
+
+    let material2 = std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.4, 0.2, 0.1)));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(-4.0, 1.0, 0.0),
+        1.0,
+        material2,
+    )));
+
+    let material3 = std::rc::Rc::new(material::Metal::new(color::Color::new(0.7, 0.6, 0.5), 0.0));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(4.0, 1.0, 0.0),
+        1.0,
+        material3,
+    )));
+
+    return world;
+}
+
 fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
     if depth <= 0 {
         return color::Color::zero();
@@ -67,56 +146,21 @@ fn render(
 
 fn main() {
     // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400 as usize;
+    let aspect_ratio = 3.0 / 2.0;
+    let image_width = 1200 as usize;
     let image_height = (image_width as f64 / aspect_ratio) as usize;
-    let samples_per_pixel = 100 as usize;
+    let samples_per_pixel = 500 as usize;
     let max_depth = 50 as u32;
 
     // World
-    let R = (std::f64::consts::PI / 4.0).cos();
-    let mut world = hittable::HittableList::new_empty();
-
-    let material_ground =
-        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.8, 0.8, 0.0)));
-    let material_center =
-        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.1, 0.2, 0.5)));
-    let material_left = std::rc::Rc::new(material::Dielectric::new(1.5));
-    let material_right =
-        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2), 0.0));
-
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(0.0, -100.5, -1.0),
-        100.0,
-        material_ground,
-    )));
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(0.0, 0.0, -1.0),
-        0.5,
-        material_center,
-    )));
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(-1.0, 0.0, -1.0),
-        0.5,
-        material_left.clone(),
-    )));
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(-1.0, 0.0, -1.0),
-        -0.45,
-        material_left,
-    )));
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(1.0, 0.0, -1.0),
-        0.5,
-        material_right,
-    )));
+    let world = random_scene();
 
     // Camera
-    let lookfrom = ray::Point::new(3.0, 3.0, 2.0);
-    let lookat = ray::Point::new(0.0, 0.0, -1.0);
+    let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
+    let lookat = ray::Point::new(0.0, 0.0, 0.0);
     let vup = ray::Vector::new(0.0, 1.0, 0.0);
-    let dist_to_focus = (&lookfrom - &lookat).length();
-    let aperture = 2.0;
+    let dist_to_focus = 10.0;
+    let aperture = 0.1;
     let cam = camera::Camera::new(
         &lookfrom,
         &lookat,
