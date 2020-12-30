@@ -87,7 +87,7 @@ fn random_scene() -> hittable::HittableList {
 }
 
 fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
-    if depth <= 0 {
+    if depth == 0 {
         return color::Color::zero();
     }
 
