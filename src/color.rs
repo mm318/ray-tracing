@@ -1,5 +1,5 @@
-use super::vec3;
 use super::utils;
+use super::vec3;
 
 pub type Color = vec3::Vec3<f32>;
 

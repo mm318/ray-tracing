@@ -2,38 +2,28 @@
 mod camera;
 mod color;
 mod hittable;
+mod material;
 mod ray;
-mod vec3;
 mod utils;
-
-fn hit_sphere(center: &ray::Point, radius: &f32, r: &ray::Ray) -> f32 {
-    let oc = r.origin() - center.clone();
-    let a = r.direction().length_squared();
-    let half_b = vec3::dot(&oc, r.direction());
-    let c = oc.length_squared() - radius * radius;
-    let discriminant = half_b * half_b - a * c;
-    if discriminant < 0.0 {
-        return -1.0;
-    } else {
-        return (-half_b - discriminant.sqrt()) / a;
-    }
-}
+mod vec3;
 
 fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
     if depth <= 0 {
-        return color::Color::new(0.0, 0.0, 0.0);
+        return color::Color::zero();
     }
 
     let mut rec = hittable::HitRecord::new();
     if world.hit(&r, &0.001, &f32::INFINITY, &mut rec) {
-        // let target = rec.point() + rec.normal() + ray::Vector::random_in_unit_sphere();
-        // let target = rec.point() + rec.normal() + ray::Vector::random_unit_vector();
-        let target = rec.point() + ray::Vector::random_in_hemisphere(rec.normal());
-        return ray_color(
-            &ray::Ray::new(rec.point().clone(), target - rec.point()),
-            world,
-            depth - 1,
-        ) * 0.5;
+        let mut scattered = ray::Ray::zero();
+        let mut attenuation = color::Color::zero();
+        if rec
+            .material()
+            .scatter(r, &rec, &mut attenuation, &mut scattered)
+        {
+            return attenuation * ray_color(&scattered, world, depth - 1);
+        } else {
+            return color::Color::zero();
+        }
     }
 
     let unit_direction = r.direction().unit_vector();
@@ -56,7 +46,7 @@ fn render(
         // std::io::stdout().flush().unwrap();
         let row_offset = (image_height - 1 - j) * image_width;
         for i in 0..*image_width {
-            let mut pixel_color = color::Color::new(0.0, 0.0, 0.0);
+            let mut pixel_color = color::Color::zero();
             for _s in 0..*samples_per_pixel {
                 let u = (i as f32 + utils::random_double(&0.0, &1.0)) / (image_width - 1) as f32;
                 let v = (j as f32 + utils::random_double(&0.0, &1.0)) / (image_height - 1) as f32;
@@ -84,14 +74,33 @@ fn main() {
     let max_depth = 50 as u32;
 
     // World
+    let material_ground =
+        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.8, 0.8, 0.0)));
+    let material_center =
+        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.7, 0.3, 0.3)));
+    let material_left = std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.8, 0.8)));
+    let material_right = std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2)));
+
     let mut world = hittable::HittableList::new_empty();
-    world.add(Box::new(hittable::Sphere::new(
-        ray::Point::new(0.0, 0.0, -1.0),
-        0.5,
-    )));
     world.add(Box::new(hittable::Sphere::new(
         ray::Point::new(0.0, -100.5, -1.0),
         100.0,
+        material_ground,
+    )));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(0.0, 0.0, -1.0),
+        0.5,
+        material_center,
+    )));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(-1.0, 0.0, -1.0),
+        0.5,
+        material_left,
+    )));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(1.0, 0.0, -1.0),
+        0.5,
+        material_right,
     )));
 
     // Camera

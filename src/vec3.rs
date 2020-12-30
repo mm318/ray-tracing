@@ -1,5 +1,3 @@
-use super::utils;
-
 mod inner {
     pub trait Sqrt {
         fn square_root(&self) -> Self;
@@ -63,41 +61,6 @@ impl<T: inner::Vec3Elem> Vec3<T> {
 
     pub fn unit_vector(&self) -> Self {
         return self / self.length();
-    }
-}
-
-impl Vec3<f32> {
-    pub fn random(min: &f32, max: &f32) -> Self {
-        return Self {
-            e: [
-                utils::random_double(min, max),
-                utils::random_double(min, max),
-                utils::random_double(min, max),
-            ],
-        };
-    }
-
-    pub fn random_in_unit_sphere() -> Self {
-        loop {
-            let p = Self::random(&-1.0, &1.0);
-            if p.length_squared() >= 1.0 {
-                continue;
-            }
-            return p;
-        }
-    }
-
-    pub fn random_unit_vector() -> Self {
-        return Self::random_in_unit_sphere().unit_vector();
-    }
-
-    pub fn random_in_hemisphere(normal: &Self) -> Self {
-        let in_unit_sphere = Self::random_in_unit_sphere();
-        if dot(&in_unit_sphere, normal) > 0.0 {
-            return in_unit_sphere;
-        } else {
-            return -in_unit_sphere;
-        }
     }
 }
 
@@ -221,7 +184,42 @@ impl<T: inner::Vec3Elem> std::ops::SubAssign<&Vec3<T>> for Vec3<T> {
 }
 
 //
-// Vec3 Multiply Operators
+// Vec3 Tensor Multiply Operators
+//
+impl<T: inner::Vec3Elem> std::ops::Mul<Vec3<T>> for Vec3<T> {
+    type Output = Vec3<T>;
+    fn mul(self, other: Vec3<T>) -> Self::Output {
+        return &self * &other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Mul<Vec3<T>> for &Vec3<T> {
+    type Output = Vec3<T>;
+    fn mul(self, other: Vec3<T>) -> Self::Output {
+        return self * &other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Mul<&Vec3<T>> for Vec3<T> {
+    type Output = Vec3<T>;
+    fn mul(self, other: &Vec3<T>) -> Self::Output {
+        return &self * other;
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::Mul<&Vec3<T>> for &Vec3<T> {
+    type Output = Vec3<T>;
+    fn mul(self, other: &Vec3<T>) -> Self::Output {
+        return Self::Output::new(
+            self.x() * other.x(),
+            self.y() * other.y(),
+            self.z() * other.z(),
+        );
+    }
+}
+
+//
+// Vec3 Scaling Operators
 //
 impl<T: inner::Vec3Elem> std::ops::Mul<T> for Vec3<T> {
     type Output = Vec3<T>;
@@ -319,4 +317,8 @@ pub fn cross<T: inner::Vec3Elem>(u: &Vec3<T>, v: &Vec3<T>) -> Vec3<T> {
         u.z() * v.x() - u.x() * v.z(),
         u.x() * v.y() - u.y() * v.x(),
     );
+}
+
+pub fn reflect<T: inner::Vec3Elem>(v: &Vec3<T>, n: &Vec3<T>) -> Vec3<T> {
+    return v - n * (dot(v, n) + dot(v, n));
 }

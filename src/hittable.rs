@@ -1,10 +1,11 @@
+use super::material;
 use super::ray;
 use super::vec3;
 
-#[derive(Clone)]
 pub struct HitRecord {
     p: ray::Point,
     normal: ray::Vector,
+    mat: std::rc::Weak<dyn material::Material>,
     t: f32,
     front_face: bool,
 }
@@ -14,6 +15,7 @@ impl HitRecord {
         return Self {
             p: ray::Point::new(0.0, 0.0, 0.0),
             normal: ray::Vector::new(0.0, 0.0, 0.0),
+            mat: std::rc::Weak::<material::Metal>::new(),
             t: 0.0,
             front_face: false,
         };
@@ -25,6 +27,10 @@ impl HitRecord {
 
     pub fn normal(&self) -> &ray::Vector {
         return &self.normal;
+    }
+
+    pub fn material(&self) -> std::rc::Rc<dyn material::Material> {
+        return self.mat.upgrade().unwrap();
     }
 
     pub fn set_face_normal(&mut self, r: &ray::Ray, outward_normal: &ray::Vector) {
@@ -84,17 +90,18 @@ impl Hittable for HittableList {
     }
 }
 
-#[derive(Clone)]
 pub struct Sphere {
     center: ray::Point,
     radius: f32,
+    mat: std::rc::Rc<dyn material::Material>,
 }
 
 impl Sphere {
-    pub fn new(cen: ray::Point, r: f32) -> Self {
+    pub fn new(cen: ray::Point, r: f32, m: std::rc::Rc<dyn material::Material>) -> Self {
         return Self {
             center: cen,
             radius: r,
+            mat: m,
         };
     }
 
@@ -133,6 +140,7 @@ impl Hittable for Sphere {
         rec.p = r.at(&rec.t);
         let outward_normal = (&rec.p - self.center()) / self.radius();
         rec.set_face_normal(r, &outward_normal);
+        rec.mat = std::rc::Rc::downgrade(&self.mat);
 
         return true;
     }
