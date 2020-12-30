@@ -74,6 +74,9 @@ fn main() {
     let max_depth = 50 as u32;
 
     // World
+    let R = (std::f32::consts::PI / 4.0).cos();
+    let mut world = hittable::HittableList::new_empty();
+
     let material_ground =
         std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.8, 0.8, 0.0)));
     let material_center =
@@ -82,7 +85,6 @@ fn main() {
     let material_right =
         std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2), 0.0));
 
-    let mut world = hittable::HittableList::new_empty();
     world.add(Box::new(hittable::Sphere::new(
         ray::Point::new(0.0, -100.5, -1.0),
         100.0,
@@ -100,7 +102,7 @@ fn main() {
     )));
     world.add(Box::new(hittable::Sphere::new(
         ray::Point::new(-1.0, 0.0, -1.0),
-        -0.4,
+        -0.45,
         material_left,
     )));
     world.add(Box::new(hittable::Sphere::new(
@@ -110,7 +112,13 @@ fn main() {
     )));
 
     // Camera
-    let cam = camera::Camera::new(&aspect_ratio);
+    let cam = camera::Camera::new(
+        &ray::Point::new(-2.0, 2.0, 1.0),
+        &ray::Point::new(0.0, 0.0, -1.0),
+        &ray::Vector::new(0.0, 1.0, 0.0),
+        &20.0,
+        &aspect_ratio,
+    );
 
     // Render
     render(

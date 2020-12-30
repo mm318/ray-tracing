@@ -36,7 +36,11 @@ impl Material for Lambertian {
         attenuation: &mut color::Color,
         scattered: &mut ray::Ray,
     ) -> bool {
+        //// let mut scatter_direction = rec.point() + rec.normal() + ray::Vector::random_unit_vector();
         let mut scatter_direction = rec.normal() + ray::Vector::random_unit_vector();
+        // let mut scatter_direction = rec.normal() + ray::Vector::random_in_unit_sphere();
+        // let mut scatter_direction = ray::Vector::random_in_hemisphere(rec.normal());
+
         // Catch degenerate scatter direction
         if scatter_direction.near_zero() {
             scatter_direction = rec.normal().clone();
