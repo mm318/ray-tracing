@@ -56,11 +56,11 @@ impl Material for Lambertian {
 //
 pub struct Metal {
     albedo: color::Color,
-    fuzz: f32,
+    fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(color: color::Color, f: f32) -> Self {
+    pub fn new(color: color::Color, f: f64) -> Self {
         return Self {
             albedo: color,
             fuzz: utils::clamp(f, 0.0, 1.0),
@@ -90,17 +90,17 @@ impl Material for Metal {
 // Dielectric
 //
 pub struct Dielectric {
-    ir: f32, // index of refraction
+    ir: f64, // index of refraction
 }
 
 impl Dielectric {
-    pub fn new(index_of_refraction: f32) -> Self {
+    pub fn new(index_of_refraction: f64) -> Self {
         return Self {
             ir: index_of_refraction,
         };
     }
 
-    fn reflectance(cosine: f32, ref_idx: f32) -> f32 {
+    fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
         // Use Schlick's approximation for reflectance.
         let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
         r0 = r0 * r0;

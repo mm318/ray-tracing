@@ -6,7 +6,7 @@ pub struct HitRecord {
     p: ray::Point,
     normal: ray::Vector,
     mat: std::rc::Weak<dyn material::Material>,
-    t: f32,
+    t: f64,
     front_face: bool,
 }
 
@@ -48,7 +48,7 @@ impl HitRecord {
 }
 
 pub trait Hittable {
-    fn hit(&self, r: &ray::Ray, t_min: &f32, t_max: &f32, rec: &mut HitRecord) -> bool;
+    fn hit(&self, r: &ray::Ray, t_min: &f64, t_max: &f64, rec: &mut HitRecord) -> bool;
 }
 
 pub struct HittableList {
@@ -78,7 +78,7 @@ impl HittableList {
 }
 
 impl Hittable for HittableList {
-    fn hit(&self, r: &ray::Ray, t_min: &f32, t_max: &f32, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &ray::Ray, t_min: &f64, t_max: &f64, rec: &mut HitRecord) -> bool {
         let mut hit_anything = false;
         let mut closest_so_far = t_max.clone();
         for object in &self.objects {
@@ -96,12 +96,12 @@ impl Hittable for HittableList {
 
 pub struct Sphere {
     center: ray::Point,
-    radius: f32,
+    radius: f64,
     mat: std::rc::Rc<dyn material::Material>,
 }
 
 impl Sphere {
-    pub fn new(cen: ray::Point, r: f32, m: std::rc::Rc<dyn material::Material>) -> Self {
+    pub fn new(cen: ray::Point, r: f64, m: std::rc::Rc<dyn material::Material>) -> Self {
         return Self {
             center: cen,
             radius: r,
@@ -113,13 +113,13 @@ impl Sphere {
         return &self.center;
     }
 
-    pub fn radius(&self) -> &f32 {
+    pub fn radius(&self) -> &f64 {
         return &self.radius;
     }
 }
 
 impl Hittable for Sphere {
-    fn hit(&self, r: &ray::Ray, t_min: &f32, t_max: &f32, rec: &mut HitRecord) -> bool {
+    fn hit(&self, r: &ray::Ray, t_min: &f64, t_max: &f64, rec: &mut HitRecord) -> bool {
         let oc = r.origin() - self.center();
         let a = r.direction().length_squared();
         let half_b = vec3::dot(&oc, r.direction());

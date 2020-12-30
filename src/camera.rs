@@ -10,7 +10,7 @@ pub struct Camera {
     u: ray::Vector,
     v: ray::Vector,
     w: ray::Vector,
-    lens_radius: f32,
+    lens_radius: f64,
 }
 
 impl Camera {
@@ -18,10 +18,10 @@ impl Camera {
         lookfrom: &ray::Point,
         lookat: &ray::Point,
         vup: &ray::Vector,
-        vfov: &f32, // vertical field-of-view in degrees
-        aspect_ratio: &f32,
-        aperture: &f32,
-        focus_dist: &f32,
+        vfov: &f64, // vertical field-of-view in degrees
+        aspect_ratio: &f64,
+        aperture: &f64,
+        focus_dist: &f64,
     ) -> Self {
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
@@ -49,7 +49,7 @@ impl Camera {
         };
     }
 
-    pub fn get_ray(&self, s: &f32, t: &f32) -> ray::Ray {
+    pub fn get_ray(&self, s: &f64, t: &f64) -> ray::Ray {
         let rd = ray::Vector::random_in_unit_disk() * self.lens_radius;
         let offset = &self.u * rd.x() + &self.v * rd.y();
 

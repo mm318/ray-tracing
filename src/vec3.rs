@@ -20,14 +20,14 @@ mod inner {
 }
 
 // TODO: make this part of a derive attribute macro
-impl inner::Sqrt for f32 {
+impl inner::Sqrt for f64 {
     fn square_root(&self) -> Self {
         return self.sqrt();
     }
 }
 
 // TODO: make this part of a derive attribute macro
-impl inner::Vec3Elem for f32 {}
+impl inner::Vec3Elem for f64 {}
 
 #[derive(Clone)]
 pub struct Vec3<T: inner::Vec3Elem> {
