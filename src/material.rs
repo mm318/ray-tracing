@@ -2,6 +2,7 @@
 use super::color;
 use super::hittable;
 use super::ray;
+use super::utils;
 use super::vec3;
 
 pub trait Material {
@@ -51,11 +52,15 @@ impl Material for Lambertian {
 //
 pub struct Metal {
     albedo: color::Color,
+    fuzz: f32,
 }
 
 impl Metal {
-    pub fn new(color: color::Color) -> Self {
-        return Self { albedo: color };
+    pub fn new(color: color::Color, f: f32) -> Self {
+        return Self {
+            albedo: color,
+            fuzz: utils::clamp(f, 0.0, 1.0),
+        };
     }
 }
 
@@ -67,7 +72,10 @@ impl Material for Metal {
         attenuation: &mut color::Color,
         scattered: &mut ray::Ray,
     ) -> bool {
-        let reflected = vec3::reflect(&r_in.direction().unit_vector(), rec.normal());
+        let mut reflected = vec3::reflect(&r_in.direction().unit_vector(), rec.normal());
+        if self.fuzz > 0.0 {
+            reflected += ray::Vector::random_in_unit_sphere() * self.fuzz;
+        }
         *scattered = ray::Ray::new(rec.point().clone(), reflected);
         *attenuation = self.albedo.clone();
         return vec3::dot(scattered.direction(), rec.normal()) > 0.0;

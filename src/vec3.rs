@@ -132,6 +132,12 @@ impl<T: inner::Vec3Elem> std::ops::Add<&Vec3<T>> for &Vec3<T> {
     }
 }
 
+impl<T: inner::Vec3Elem> std::ops::AddAssign<Vec3<T>> for Vec3<T> {
+    fn add_assign(&mut self, other: Vec3<T>) {
+        *self += &other;
+    }
+}
+
 impl<T: inner::Vec3Elem> std::ops::AddAssign<&Vec3<T>> for Vec3<T> {
     fn add_assign(&mut self, other: &Vec3<T>) {
         self[0] += other.x();
@@ -172,6 +178,12 @@ impl<T: inner::Vec3Elem> std::ops::Sub<&Vec3<T>> for &Vec3<T> {
             self.y() - other.y(),
             self.z() - other.z(),
         );
+    }
+}
+
+impl<T: inner::Vec3Elem> std::ops::SubAssign<Vec3<T>> for Vec3<T> {
+    fn sub_assign(&mut self, other: Vec3<T>) {
+        *self -= &other;
     }
 }
 

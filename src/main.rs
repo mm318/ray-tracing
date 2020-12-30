@@ -78,8 +78,10 @@ fn main() {
         std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.8, 0.8, 0.0)));
     let material_center =
         std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.7, 0.3, 0.3)));
-    let material_left = std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.8, 0.8)));
-    let material_right = std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2)));
+    let material_left =
+        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.8, 0.8), 0.3));
+    let material_right =
+        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2), 1.0));
 
     let mut world = hittable::HittableList::new_empty();
     world.add(Box::new(hittable::Sphere::new(
