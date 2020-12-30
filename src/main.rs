@@ -112,12 +112,19 @@ fn main() {
     )));
 
     // Camera
+    let lookfrom = ray::Point::new(3.0, 3.0, 2.0);
+    let lookat = ray::Point::new(0.0, 0.0, -1.0);
+    let vup = ray::Vector::new(0.0, 1.0, 0.0);
+    let dist_to_focus = (&lookfrom - &lookat).length();
+    let aperture = 2.0;
     let cam = camera::Camera::new(
-        &ray::Point::new(-2.0, 2.0, 1.0),
-        &ray::Point::new(0.0, 0.0, -1.0),
-        &ray::Vector::new(0.0, 1.0, 0.0),
+        &lookfrom,
+        &lookat,
+        &vup,
         &20.0,
         &aspect_ratio,
+        &aperture,
+        &dist_to_focus,
     );
 
     // Render
