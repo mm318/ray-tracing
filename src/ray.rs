@@ -46,6 +46,17 @@ impl vec3::Vec3<f32> {
     }
 }
 
+pub fn reflect(v: &Vector, n: &Vector) -> Vector {
+    return v - n * 2.0 * vec3::dot(v, n);
+}
+
+pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: &f32) -> Vector {
+    let cos_theta = vec3::dot(&-uv, n).min(1.0);
+    let r_out_perp = (uv + n * cos_theta) * etai_over_etat;
+    let r_out_parallel = n * -(1.0 - r_out_perp.length_squared()).abs().sqrt();
+    return r_out_perp + r_out_parallel;
+}
+
 pub struct Ray {
     orig: Point,
     dir: Vector,

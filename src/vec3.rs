@@ -330,7 +330,3 @@ pub fn cross<T: inner::Vec3Elem>(u: &Vec3<T>, v: &Vec3<T>) -> Vec3<T> {
         u.x() * v.y() - u.y() * v.x(),
     );
 }
-
-pub fn reflect<T: inner::Vec3Elem>(v: &Vec3<T>, n: &Vec3<T>) -> Vec3<T> {
-    return v - n * (dot(v, n) + dot(v, n));
-}

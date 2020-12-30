@@ -77,11 +77,10 @@ fn main() {
     let material_ground =
         std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.8, 0.8, 0.0)));
     let material_center =
-        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.7, 0.3, 0.3)));
-    let material_left =
-        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.8, 0.8), 0.3));
+        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.1, 0.2, 0.5)));
+    let material_left = std::rc::Rc::new(material::Dielectric::new(1.5));
     let material_right =
-        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2), 1.0));
+        std::rc::Rc::new(material::Metal::new(color::Color::new(0.8, 0.6, 0.2), 0.0));
 
     let mut world = hittable::HittableList::new_empty();
     world.add(Box::new(hittable::Sphere::new(
@@ -97,6 +96,11 @@ fn main() {
     world.add(Box::new(hittable::Sphere::new(
         ray::Point::new(-1.0, 0.0, -1.0),
         0.5,
+        material_left.clone(),
+    )));
+    world.add(Box::new(hittable::Sphere::new(
+        ray::Point::new(-1.0, 0.0, -1.0),
+        -0.4,
         material_left,
     )));
     world.add(Box::new(hittable::Sphere::new(

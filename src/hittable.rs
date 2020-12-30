@@ -29,6 +29,10 @@ impl HitRecord {
         return &self.normal;
     }
 
+    pub fn front_face(&self) -> &bool {
+        return &self.front_face;
+    }
+
     pub fn material(&self) -> std::rc::Rc<dyn material::Material> {
         return self.mat.upgrade().unwrap();
     }
