@@ -36,8 +36,13 @@ fn random_scene() -> hittable::HittableList {
                     let albedo =
                         color::Color::random(&0.0, &1.0) * color::Color::random(&0.0, &1.0);
                     let sphere_material = std::rc::Rc::new(material::Lambertian::new(albedo));
-                    world.add(Box::new(hittable::Sphere::new(
+                    let center2 =
+                        &center + ray::Vector::new(0.0, utils::random_double(&0.0, &0.5), 0.0);
+                    world.add(Box::new(hittable::MovingSphere::new(
                         center,
+                        center2,
+                        0.0,
+                        1.0,
                         0.2,
                         sphere_material,
                     )));
@@ -150,10 +155,10 @@ fn render(
 
 fn main() {
     // Image
-    let aspect_ratio = 3.0 / 2.0;
-    let image_width = 1200 as usize;
-    let image_height = (image_width as RayTracingFloat / aspect_ratio) as usize;
-    let samples_per_pixel = 500 as usize;
+    let aspect_ratio = 16.0 / 9.0;
+    let image_width = 400 as usize;
+    let image_height = (image_width as f64 / aspect_ratio) as usize;
+    let samples_per_pixel = 100 as usize;
     let max_depth = 50 as u32;
 
     // World
@@ -173,6 +178,8 @@ fn main() {
         &aspect_ratio,
         &aperture,
         &dist_to_focus,
+        &0.0,
+        &1.0,
     );
 
     // Render

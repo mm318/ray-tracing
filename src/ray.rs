@@ -75,18 +75,19 @@ pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: &RayTracingFloat) -> Vec
 pub struct Ray {
     orig: Point,
     dir: Vector,
-    // tm: RayTracingFloat,
+    tm: RayTracingFloat,
 }
 
 impl Ray {
     pub fn zero() -> Self {
-        return Self::new(Point::zero(), Vector::zero());
+        return Self::new(Point::zero(), Vector::zero(), 0.0);
     }
 
-    pub fn new(origin: Point, direction: Vector) -> Self {
+    pub fn new(origin: Point, direction: Vector, time: RayTracingFloat) -> Self {
         return Ray {
             orig: origin,
             dir: direction,
+            tm: time,
         };
     }
 
@@ -96,6 +97,10 @@ impl Ray {
 
     pub fn direction(&self) -> &Vector {
         return &self.dir;
+    }
+
+    pub fn time(&self) -> &RayTracingFloat {
+        return &self.tm;
     }
 
     pub fn at(&self, t: &RayTracingFloat) -> Point {

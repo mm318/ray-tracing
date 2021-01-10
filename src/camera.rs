@@ -1,4 +1,5 @@
 use super::ray;
+use super::utils;
 use super::utils::RayTracingFloat;
 use super::vec3;
 
@@ -12,6 +13,8 @@ pub struct Camera {
     v: ray::Vector,
     w: ray::Vector,
     lens_radius: RayTracingFloat,
+    time0: RayTracingFloat, // shutter open time
+    time1: RayTracingFloat, // shutter close time
 }
 
 impl Camera {
@@ -23,6 +26,8 @@ impl Camera {
         aspect_ratio: &RayTracingFloat,
         aperture: &RayTracingFloat,
         focus_dist: &RayTracingFloat,
+        _time0: &RayTracingFloat,
+        _time1: &RayTracingFloat,
     ) -> Self {
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
@@ -47,6 +52,8 @@ impl Camera {
             v: v,
             w: w,
             lens_radius: aperture / 2.0,
+            time0: _time0.clone(),
+            time1: _time1.clone(),
         };
     }
 
@@ -59,6 +66,7 @@ impl Camera {
             &self.lower_left_corner + &self.horizontal * s + &self.vertical * t
                 - &self.origin
                 - &offset,
+            utils::random_double(&self.time0, &self.time1),
         );
     }
 }
