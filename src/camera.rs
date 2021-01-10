@@ -1,4 +1,5 @@
 use super::ray;
+use super::utils::RayTracingFloat;
 use super::vec3;
 
 #[derive(Clone)]
@@ -10,7 +11,7 @@ pub struct Camera {
     u: ray::Vector,
     v: ray::Vector,
     w: ray::Vector,
-    lens_radius: f64,
+    lens_radius: RayTracingFloat,
 }
 
 impl Camera {
@@ -18,10 +19,10 @@ impl Camera {
         lookfrom: &ray::Point,
         lookat: &ray::Point,
         vup: &ray::Vector,
-        vfov: &f64, // vertical field-of-view in degrees
-        aspect_ratio: &f64,
-        aperture: &f64,
-        focus_dist: &f64,
+        vfov: &RayTracingFloat, // vertical field-of-view in degrees
+        aspect_ratio: &RayTracingFloat,
+        aperture: &RayTracingFloat,
+        focus_dist: &RayTracingFloat,
     ) -> Self {
         let theta = vfov.to_radians();
         let h = (theta / 2.0).tan();
@@ -49,7 +50,7 @@ impl Camera {
         };
     }
 
-    pub fn get_ray(&self, s: &f64, t: &f64) -> ray::Ray {
+    pub fn get_ray(&self, s: &RayTracingFloat, t: &RayTracingFloat) -> ray::Ray {
         let rd = ray::Vector::random_in_unit_disk() * self.lens_radius;
         let offset = &self.u * rd.x() + &self.v * rd.y();
 

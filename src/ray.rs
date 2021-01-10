@@ -1,15 +1,16 @@
 use super::utils;
+use super::utils::RayTracingFloat;
 use super::vec3;
 
-pub type Point = vec3::Vec3<f64>;
-pub type Vector = vec3::Vec3<f64>;
+pub type Point = vec3::Vec3<RayTracingFloat>;
+pub type Vector = vec3::Vec3<RayTracingFloat>;
 
-impl vec3::Vec3<f64> {
+impl vec3::Vec3<RayTracingFloat> {
     pub fn zero() -> Self {
         return Self::new(0.0, 0.0, 0.0);
     }
 
-    pub fn random(min: &f64, max: &f64) -> Self {
+    pub fn random(min: &RayTracingFloat, max: &RayTracingFloat) -> Self {
         return Self::new(
             utils::random_double(min, max),
             utils::random_double(min, max),
@@ -64,7 +65,7 @@ pub fn reflect(v: &Vector, n: &Vector) -> Vector {
     return v - n * 2.0 * vec3::dot(v, n);
 }
 
-pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: &f64) -> Vector {
+pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: &RayTracingFloat) -> Vector {
     let cos_theta = vec3::dot(&-uv, n).min(1.0);
     let r_out_perp = (uv + n * cos_theta) * etai_over_etat;
     let r_out_parallel = n * -(1.0 - r_out_perp.length_squared()).abs().sqrt();
@@ -74,6 +75,7 @@ pub fn refract(uv: &Vector, n: &Vector, etai_over_etat: &f64) -> Vector {
 pub struct Ray {
     orig: Point,
     dir: Vector,
+    // tm: RayTracingFloat,
 }
 
 impl Ray {
@@ -96,7 +98,7 @@ impl Ray {
         return &self.dir;
     }
 
-    pub fn at(&self, t: &f64) -> Point {
+    pub fn at(&self, t: &RayTracingFloat) -> Point {
         return self.origin() + self.direction() * t.clone();
     }
 }

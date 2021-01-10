@@ -3,6 +3,7 @@ use super::color;
 use super::hittable;
 use super::ray;
 use super::utils;
+use super::utils::RayTracingFloat;
 use super::vec3;
 
 pub trait Material {
@@ -56,11 +57,11 @@ impl Material for Lambertian {
 //
 pub struct Metal {
     albedo: color::Color,
-    fuzz: f64,
+    fuzz: RayTracingFloat,
 }
 
 impl Metal {
-    pub fn new(color: color::Color, f: f64) -> Self {
+    pub fn new(color: color::Color, f: RayTracingFloat) -> Self {
         return Self {
             albedo: color,
             fuzz: utils::clamp(f, 0.0, 1.0),
@@ -90,17 +91,17 @@ impl Material for Metal {
 // Dielectric
 //
 pub struct Dielectric {
-    ir: f64, // index of refraction
+    ir: RayTracingFloat, // index of refraction
 }
 
 impl Dielectric {
-    pub fn new(index_of_refraction: f64) -> Self {
+    pub fn new(index_of_refraction: RayTracingFloat) -> Self {
         return Self {
             ir: index_of_refraction,
         };
     }
 
-    fn reflectance(cosine: f64, ref_idx: f64) -> f64 {
+    fn reflectance(cosine: RayTracingFloat, ref_idx: RayTracingFloat) -> RayTracingFloat {
         // Use Schlick's approximation for reflectance.
         let mut r0 = (1.0 - ref_idx) / (1.0 + ref_idx);
         r0 = r0 * r0;

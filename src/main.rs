@@ -7,6 +7,8 @@ mod ray;
 mod utils;
 mod vec3;
 
+use utils::RayTracingFloat;
+
 fn random_scene() -> hittable::HittableList {
     let mut world = hittable::HittableList::new_empty();
 
@@ -23,9 +25,9 @@ fn random_scene() -> hittable::HittableList {
         for b in -11..11 {
             let choose_mat = utils::random_double(&0.0, &1.0);
             let center = ray::Point::new(
-                a as f64 + 0.9 * utils::random_double(&0.0, &1.0),
+                a as RayTracingFloat + 0.9 * utils::random_double(&0.0, &1.0),
                 0.2,
-                b as f64 + 0.9 * utils::random_double(&0.0, &1.0),
+                b as RayTracingFloat + 0.9 * utils::random_double(&0.0, &1.0),
             );
 
             if (&center - &ref_point).length() > 0.9 {
@@ -92,7 +94,7 @@ fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color:
     }
 
     let mut rec = hittable::HitRecord::new();
-    if world.hit(&r, &0.001, &f64::INFINITY, &mut rec) {
+    if world.hit(&r, &0.001, &RayTracingFloat::INFINITY, &mut rec) {
         let mut scattered = ray::Ray::zero();
         let mut attenuation = color::Color::zero();
         if rec
@@ -127,8 +129,10 @@ fn render(
         for i in 0..*image_width {
             let mut pixel_color = color::Color::zero();
             for _s in 0..*samples_per_pixel {
-                let u = (i as f64 + utils::random_double(&0.0, &1.0)) / (image_width - 1) as f64;
-                let v = (j as f64 + utils::random_double(&0.0, &1.0)) / (image_height - 1) as f64;
+                let u = (i as RayTracingFloat + utils::random_double(&0.0, &1.0))
+                    / (image_width - 1) as RayTracingFloat;
+                let v = (j as RayTracingFloat + utils::random_double(&0.0, &1.0))
+                    / (image_height - 1) as RayTracingFloat;
                 let r = cam.get_ray(&u, &v);
                 pixel_color += &ray_color(&r, world, *max_depth);
             }
@@ -148,7 +152,7 @@ fn main() {
     // Image
     let aspect_ratio = 3.0 / 2.0;
     let image_width = 1200 as usize;
-    let image_height = (image_width as f64 / aspect_ratio) as usize;
+    let image_height = (image_width as RayTracingFloat / aspect_ratio) as usize;
     let samples_per_pixel = 500 as usize;
     let max_depth = 50 as u32;
 

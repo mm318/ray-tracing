@@ -1,3 +1,5 @@
+use super::utils::RayTracingFloat;
+
 mod inner {
     pub trait Sqrt {
         fn square_root(&self) -> Self;
@@ -20,14 +22,14 @@ mod inner {
 }
 
 // TODO: make this part of a derive attribute macro
-impl inner::Sqrt for f64 {
+impl inner::Sqrt for RayTracingFloat {
     fn square_root(&self) -> Self {
         return self.sqrt();
     }
 }
 
 // TODO: make this part of a derive attribute macro
-impl inner::Vec3Elem for f64 {}
+impl inner::Vec3Elem for RayTracingFloat {}
 
 #[derive(Clone)]
 pub struct Vec3<T: inner::Vec3Elem> {
