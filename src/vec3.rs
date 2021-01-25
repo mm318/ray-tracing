@@ -37,6 +37,8 @@ pub struct Vec3<T: inner::Vec3Elem> {
 }
 
 impl<T: inner::Vec3Elem> Vec3<T> {
+    pub const NUM_DIMENSIONS: usize = 3;
+
     pub fn new(e0: T, e1: T, e2: T) -> Self {
         return Self { e: [e0, e1, e2] };
     }

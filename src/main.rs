@@ -1,4 +1,5 @@
 // use std::io::Write;
+mod aabb;
 mod camera;
 mod color;
 mod hittable;
