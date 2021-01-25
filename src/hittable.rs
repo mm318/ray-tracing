@@ -1,3 +1,4 @@
+use super::aabb;
 use super::material;
 use super::ray;
 use super::utils::RayTracingFloat;
@@ -56,6 +57,13 @@ pub trait Hittable {
         t_max: &RayTracingFloat,
         rec: &mut HitRecord,
     ) -> bool;
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool;
 }
 
 pub struct HittableList {
@@ -104,6 +112,36 @@ impl Hittable for HittableList {
         }
 
         return hit_anything;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        if self.objects.is_empty() {
+            return false;
+        }
+
+        let mut temp_box =
+            aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+        let mut first_box = false;
+        for object in &self.objects {
+            if !object.bounding_box(time0, time1, &mut temp_box) {
+                return false;
+            }
+
+            *output_box = if first_box {
+                temp_box.clone()
+            } else {
+                aabb::surrounding_box(output_box, &temp_box)
+            };
+
+            first_box = false;
+        }
+
+        return true;
     }
 }
 
@@ -172,6 +210,19 @@ impl Hittable for Sphere {
         rec.set_face_normal(r, &outward_normal);
         rec.mat = std::rc::Rc::downgrade(&self.mat);
 
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        *output_box = aabb::AxisAlignedBoundingBoxes::new(
+            self.center() - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center() + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
         return true;
     }
 }
@@ -252,6 +303,24 @@ impl Hittable for MovingSphere {
         rec.set_face_normal(r, &outward_normal);
         rec.mat = std::rc::Rc::downgrade(&self.mat);
 
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        let box0 = aabb::AxisAlignedBoundingBoxes::new(
+            self.center(time0) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center(time0) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
+        let box1 = aabb::AxisAlignedBoundingBoxes::new(
+            self.center(time1) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center(time1) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
+        *output_box = aabb::surrounding_box(&box0, &box1);
         return true;
     }
 }
