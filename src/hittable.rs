@@ -1,5 +1,7 @@
+use super::aabb;
 use super::material;
 use super::ray;
+use super::utils;
 use super::utils::RayTracingFloat;
 use super::vec3;
 
@@ -56,10 +58,17 @@ pub trait Hittable {
         t_max: &RayTracingFloat,
         rec: &mut HitRecord,
     ) -> bool;
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool;
 }
 
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    objects: Vec<std::rc::Rc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -69,17 +78,21 @@ impl HittableList {
         };
     }
 
-    pub fn new(object: Box<dyn Hittable>) -> Self {
+    pub fn new(object: std::rc::Rc<dyn Hittable>) -> Self {
         return Self {
             objects: vec![object],
         };
+    }
+
+    pub fn get_objects(&self) -> &Vec<std::rc::Rc<dyn Hittable>> {
+        return &self.objects;
     }
 
     pub fn clear(&mut self) {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, object: Box<dyn Hittable>) {
+    pub fn add(&mut self, object: std::rc::Rc<dyn Hittable>) {
         self.objects.push(object);
     }
 }
@@ -104,6 +117,142 @@ impl Hittable for HittableList {
         }
 
         return hit_anything;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        if self.objects.is_empty() {
+            return false;
+        }
+
+        let mut temp_box =
+            aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+        let mut first_box = false;
+        for object in &self.objects {
+            if !object.bounding_box(time0, time1, &mut temp_box) {
+                return false;
+            }
+
+            *output_box = if first_box {
+                temp_box.clone()
+            } else {
+                aabb::surrounding_box(output_box, &temp_box)
+            };
+
+            first_box = false;
+        }
+
+        return true;
+    }
+}
+
+//
+// Bounding Volume Hierarchies Node
+//
+pub struct BVH_Node {
+    left: std::rc::Rc<dyn Hittable>,
+    right: std::rc::Rc<dyn Hittable>,
+    bounding_box: aabb::AxisAlignedBoundingBoxes,
+}
+
+impl BVH_Node {
+    pub fn new_from_hittable_list(
+        list: HittableList,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+    ) -> Self {
+        let objects = list.get_objects();
+        return Self::new(objects, &0, &objects.len(), time0, time1);
+    }
+
+    pub fn new(
+        src_objects: &Vec<std::rc::Rc<dyn Hittable>>,
+        start: &usize,
+        end: &usize,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+    ) -> Self {
+        let axis = utils::random_int(&0, &2);
+        let comparator = match axis {
+            0 => aabb::box_x_compare,
+            1 => aabb::box_y_compare,
+            _ => aabb::box_z_compare,
+        };
+
+        let object_span = end - start;
+        let (left, right) = if object_span == 1 {
+            (src_objects[*start].clone(), src_objects[*start].clone())
+        } else if object_span == 2 {
+            if comparator(&*src_objects[*start], &*src_objects[start + 1])
+                == std::cmp::Ordering::Less
+            {
+                (src_objects[*start].clone(), src_objects[start + 1].clone())
+            } else {
+                (src_objects[start + 1].clone(), src_objects[*start].clone())
+            }
+        } else {
+            let mut objects = src_objects[*start..*end].to_vec();
+            objects.sort_by(|a, b| comparator(&**a, &**b));
+
+            let mid = objects.len() / 2;
+            (
+                std::rc::Rc::new(BVH_Node::new(&objects, &0, &mid, time0, time1))
+                    as std::rc::Rc<dyn Hittable>,
+                std::rc::Rc::new(BVH_Node::new(&objects, &mid, &objects.len(), time0, time1))
+                    as std::rc::Rc<dyn Hittable>,
+            )
+        };
+
+        let mut box_left =
+            aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+        let mut box_right =
+            aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+        if !left.bounding_box(&0.0, &0.0, &mut box_left)
+            || !right.bounding_box(&0.0, &0.0, &mut box_right)
+        {
+            eprintln!("No bounding box in bvh_node constructor.");
+        }
+
+        return Self {
+            left: left,
+            right: right,
+            bounding_box: aabb::surrounding_box(&box_left, &box_right),
+        };
+    }
+}
+
+impl Hittable for BVH_Node {
+    fn hit(
+        &self,
+        r: &ray::Ray,
+        t_min: &RayTracingFloat,
+        t_max: &RayTracingFloat,
+        rec: &mut HitRecord,
+    ) -> bool {
+        if !self.bounding_box.hit(r, t_min, t_max) {
+            return false;
+        }
+
+        let hit_left = self.left.hit(r, t_min, t_max, rec);
+        // let hit_right = self.right.hit(r, t_min, t_max, rec);
+        let right_t_max = if hit_left { rec.t } else { *t_max };
+        let hit_right = self.right.hit(r, t_min, &right_t_max, rec);
+
+        return hit_left || hit_right;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        *output_box = self.bounding_box.clone();
+        return true;
     }
 }
 
@@ -172,6 +321,19 @@ impl Hittable for Sphere {
         rec.set_face_normal(r, &outward_normal);
         rec.mat = std::rc::Rc::downgrade(&self.mat);
 
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        *output_box = aabb::AxisAlignedBoundingBoxes::new(
+            self.center() - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center() + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
         return true;
     }
 }
@@ -252,6 +414,24 @@ impl Hittable for MovingSphere {
         rec.set_face_normal(r, &outward_normal);
         rec.mat = std::rc::Rc::downgrade(&self.mat);
 
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        let box0 = aabb::AxisAlignedBoundingBoxes::new(
+            self.center(time0) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center(time0) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
+        let box1 = aabb::AxisAlignedBoundingBoxes::new(
+            self.center(time1) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+            self.center(time1) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
+        );
+        *output_box = aabb::surrounding_box(&box0, &box1);
         return true;
     }
 }

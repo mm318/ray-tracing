@@ -2,6 +2,11 @@ use rand::Rng;
 
 pub type RayTracingFloat = f64;
 
+pub fn random_int(min: &i32, max: &i32) -> i32 {
+    // Returns a random integer in [min,max].
+    return random_double(&(*min as RayTracingFloat), &((max + 1) as RayTracingFloat)) as i32;
+}
+
 pub fn random_double(min: &RayTracingFloat, max: &RayTracingFloat) -> RayTracingFloat {
     thread_local!(static RNG_STORAGE : std::cell::RefCell<rand::prelude::ThreadRng> 
         = std::cell::RefCell::new(rand::thread_rng()));
