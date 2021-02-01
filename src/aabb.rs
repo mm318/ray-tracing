@@ -1,3 +1,4 @@
+use super::hittable;
 use super::ray;
 use super::utils::RayTracingFloat;
 
@@ -58,4 +59,31 @@ pub fn surrounding_box(
     );
 
     return AxisAlignedBoundingBoxes::new(small, big);
+}
+
+fn box_compare(
+    a: &dyn hittable::Hittable,
+    b: &dyn hittable::Hittable,
+    axis: usize,
+) -> std::cmp::Ordering {
+    let mut box_a = AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+    let mut box_b = AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+
+    if !a.bounding_box(&0.0, &0.0, &mut box_a) || !b.bounding_box(&0.0, &0.0, &mut box_b) {
+        eprintln!("No bounding box in bvh_node constructor.");
+    }
+
+    return box_a.min()[axis].partial_cmp(&box_b.min()[axis]).unwrap();
+}
+
+pub fn box_x_compare(a: &dyn hittable::Hittable, b: &dyn hittable::Hittable) -> std::cmp::Ordering {
+    return box_compare(a, b, 0);
+}
+
+pub fn box_y_compare(a: &dyn hittable::Hittable, b: &dyn hittable::Hittable) -> std::cmp::Ordering {
+    return box_compare(a, b, 1);
+}
+
+pub fn box_z_compare(a: &dyn hittable::Hittable, b: &dyn hittable::Hittable) -> std::cmp::Ordering {
+    return box_compare(a, b, 2);
 }
