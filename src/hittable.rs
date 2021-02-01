@@ -68,7 +68,7 @@ pub trait Hittable {
 }
 
 pub struct HittableList {
-    objects: Vec<Box<dyn Hittable>>,
+    objects: Vec<std::rc::Rc<dyn Hittable>>,
 }
 
 impl HittableList {
@@ -78,17 +78,21 @@ impl HittableList {
         };
     }
 
-    pub fn new(object: Box<dyn Hittable>) -> Self {
+    pub fn new(object: std::rc::Rc<dyn Hittable>) -> Self {
         return Self {
             objects: vec![object],
         };
+    }
+
+    pub fn get_objects(&self) -> &Vec<std::rc::Rc<dyn Hittable>> {
+        return &self.objects;
     }
 
     pub fn clear(&mut self) {
         self.objects.clear();
     }
 
-    pub fn add(&mut self, object: Box<dyn Hittable>) {
+    pub fn add(&mut self, object: std::rc::Rc<dyn Hittable>) {
         self.objects.push(object);
     }
 }
@@ -156,17 +160,26 @@ pub struct BVH_Node {
 }
 
 impl BVH_Node {
+    pub fn new_from_hittable_list(
+        list: HittableList,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+    ) -> Self {
+        let objects = list.get_objects();
+        return Self::new(objects, &0, &objects.len(), time0, time1);
+    }
+
     pub fn new(
         src_objects: &Vec<std::rc::Rc<dyn Hittable>>,
         start: &usize,
         end: &usize,
         time0: &RayTracingFloat,
         time1: &RayTracingFloat,
-    ) -> BVH_Node {
+    ) -> Self {
         let axis = utils::random_int(&0, &2);
         let comparator = match axis {
-            1 => aabb::box_x_compare,
-            2 => aabb::box_y_compare,
+            0 => aabb::box_x_compare,
+            1 => aabb::box_y_compare,
             _ => aabb::box_z_compare,
         };
 
@@ -185,11 +198,11 @@ impl BVH_Node {
             let mut objects = src_objects[*start..*end].to_vec();
             objects.sort_by(|a, b| comparator(&**a, &**b));
 
-            let mid = start + object_span / 2;
+            let mid = objects.len() / 2;
             (
-                std::rc::Rc::new(BVH_Node::new(&objects, &start, &mid, time0, time1))
+                std::rc::Rc::new(BVH_Node::new(&objects, &0, &mid, time0, time1))
                     as std::rc::Rc<dyn Hittable>,
-                std::rc::Rc::new(BVH_Node::new(&objects, &mid, &end, time0, time1))
+                std::rc::Rc::new(BVH_Node::new(&objects, &mid, &objects.len(), time0, time1))
                     as std::rc::Rc<dyn Hittable>,
             )
         };
@@ -204,7 +217,7 @@ impl BVH_Node {
             eprintln!("No bounding box in bvh_node constructor.");
         }
 
-        return BVH_Node {
+        return Self {
             left: left,
             right: right,
             bounding_box: aabb::surrounding_box(&box_left, &box_right),
@@ -225,6 +238,7 @@ impl Hittable for BVH_Node {
         }
 
         let hit_left = self.left.hit(r, t_min, t_max, rec);
+        // let hit_right = self.right.hit(r, t_min, t_max, rec);
         let right_t_max = if hit_left { rec.t } else { *t_max };
         let hit_right = self.right.hit(r, t_min, &right_t_max, rec);
 

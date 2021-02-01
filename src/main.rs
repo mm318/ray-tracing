@@ -11,11 +11,11 @@ mod vec3;
 use utils::RayTracingFloat;
 
 fn random_scene() -> hittable::HittableList {
-    let mut world = hittable::HittableList::new_empty();
+    let mut objects = hittable::HittableList::new_empty();
 
     let ground_material =
         std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.5, 0.5, 0.5)));
-    world.add(Box::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable::Sphere::new(
         ray::Point::new(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
@@ -39,7 +39,7 @@ fn random_scene() -> hittable::HittableList {
                     let sphere_material = std::rc::Rc::new(material::Lambertian::new(albedo));
                     let center2 =
                         &center + ray::Vector::new(0.0, utils::random_double(&0.0, &0.5), 0.0);
-                    world.add(Box::new(hittable::MovingSphere::new(
+                    objects.add(std::rc::Rc::new(hittable::MovingSphere::new(
                         center,
                         center2,
                         0.0,
@@ -52,7 +52,7 @@ fn random_scene() -> hittable::HittableList {
                     let albedo = color::Color::random(&0.5, &1.0);
                     let fuzz = utils::random_double(&0.0, &0.5);
                     let sphere_material = std::rc::Rc::new(material::Metal::new(albedo, fuzz));
-                    world.add(Box::new(hittable::Sphere::new(
+                    objects.add(std::rc::Rc::new(hittable::Sphere::new(
                         center,
                         0.2,
                         sphere_material,
@@ -60,7 +60,7 @@ fn random_scene() -> hittable::HittableList {
                 } else {
                     // glass
                     let sphere_material = std::rc::Rc::new(material::Dielectric::new(1.5));
-                    world.add(Box::new(hittable::Sphere::new(
+                    objects.add(std::rc::Rc::new(hittable::Sphere::new(
                         center,
                         0.2,
                         sphere_material,
@@ -71,27 +71,30 @@ fn random_scene() -> hittable::HittableList {
     }
 
     let material1 = std::rc::Rc::new(material::Dielectric::new(1.5));
-    world.add(Box::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable::Sphere::new(
         ray::Point::new(0.0, 1.0, 0.0),
         1.0,
         material1,
     )));
 
     let material2 = std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.4, 0.2, 0.1)));
-    world.add(Box::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable::Sphere::new(
         ray::Point::new(-4.0, 1.0, 0.0),
         1.0,
         material2,
     )));
 
     let material3 = std::rc::Rc::new(material::Metal::new(color::Color::new(0.7, 0.6, 0.5), 0.0));
-    world.add(Box::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable::Sphere::new(
         ray::Point::new(4.0, 1.0, 0.0),
         1.0,
         material3,
     )));
 
-    return world;
+    // return objects;
+    return hittable::HittableList::new(std::rc::Rc::new(
+        hittable::BVH_Node::new_from_hittable_list(objects, &0.0, &1.0),
+    ));
 }
 
 fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {

@@ -53,9 +53,9 @@ pub fn surrounding_box(
     );
 
     let big = ray::Point::new(
-        box0.max().x().min(box1.max().x()),
-        box0.max().y().min(box1.max().y()),
-        box0.max().z().min(box1.max().z()),
+        box0.max().x().max(box1.max().x()),
+        box0.max().y().max(box1.max().y()),
+        box0.max().z().max(box1.max().z()),
     );
 
     return AxisAlignedBoundingBoxes::new(small, big);
