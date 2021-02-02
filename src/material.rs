@@ -1,7 +1,7 @@
-// use std::rc::Rc;
 use super::color;
 use super::hittable;
 use super::ray;
+use super::texture;
 use super::utils;
 use super::utils::RayTracingFloat;
 use super::vec3;
@@ -20,12 +20,18 @@ pub trait Material {
 // Lambertian
 //
 pub struct Lambertian {
-    albedo: color::Color,
+    albedo: std::rc::Rc<dyn texture::Texture>,
 }
 
 impl Lambertian {
     pub fn new(color: color::Color) -> Self {
-        return Self { albedo: color };
+        return Self {
+            albedo: std::rc::Rc::new(texture::SolidColor::new(color)),
+        };
+    }
+
+    pub fn new_with_texture(a: std::rc::Rc<dyn texture::Texture>) -> Self {
+        return Self { albedo: a };
     }
 }
 
@@ -47,7 +53,7 @@ impl Material for Lambertian {
             scatter_direction = rec.normal().clone();
         }
         *scattered = ray::Ray::new(rec.point().clone(), scatter_direction, r_in.time().clone());
-        *attenuation = self.albedo.clone();
+        *attenuation = self.albedo.value(&rec.u, &rec.v, &rec.p).clone();
         return true;
     }
 }

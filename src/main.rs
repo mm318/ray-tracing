@@ -7,6 +7,7 @@ mod hittable_box;
 mod hittable_sphere;
 mod material;
 mod ray;
+mod texture;
 mod utils;
 mod vec3;
 
@@ -15,8 +16,11 @@ use utils::RayTracingFloat;
 fn random_scene() -> hittable::HittableList {
     let mut objects = hittable::HittableList::new_empty();
 
-    let ground_material =
-        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.5, 0.5, 0.5)));
+    let checker = std::rc::Rc::new(texture::CheckerTexture::new(
+        color::Color::new(0.2, 0.3, 0.1),
+        color::Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground_material = std::rc::Rc::new(material::Lambertian::new_with_texture(checker));
     objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
         ray::Point::new(0.0, -1000.0, 0.0),
         1000.0,
