@@ -103,28 +103,30 @@ fn random_scene() -> hittable::HittableList {
     ));
 }
 
-fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
+fn ray_color(r: &ray::Ray, background: &color::Color, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
+    // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth == 0 {
         return color::Color::zero();
     }
 
+    // If the ray hits nothing, return the background color.
     let mut rec = hittable::HitRecord::new();
-    if world.hit(&r, &0.001, &RayTracingFloat::INFINITY, &mut rec) {
-        let mut scattered = ray::Ray::zero();
-        let mut attenuation = color::Color::zero();
-        if rec
-            .material()
-            .scatter(r, &rec, &mut attenuation, &mut scattered)
-        {
-            return attenuation * ray_color(&scattered, world, depth - 1);
-        } else {
-            return color::Color::zero();
-        }
+    if !world.hit(&r, &0.001, &RayTracingFloat::INFINITY, &mut rec) {
+        return background.clone();
     }
 
-    let unit_direction = r.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    return color::Color::new(1.0, 1.0, 1.0) * (1.0 - t) + color::Color::new(0.5, 0.7, 1.0) * t;
+    let mut scattered = ray::Ray::zero();
+    let mut attenuation = color::Color::zero();
+    let emitted = rec.material().emitted(&rec.u, &rec.v, &rec.p).clone();
+
+    if !rec
+        .material()
+        .scatter(r, &rec, &mut attenuation, &mut scattered)
+    {
+        return emitted;
+    }
+
+    return emitted + attenuation * ray_color(&scattered, background, world, depth - 1);
 }
 
 fn render(
@@ -134,6 +136,7 @@ fn render(
     samples_per_pixel: &usize,
     max_depth: &u32,
     world: &dyn hittable::Hittable,
+    background: &color::Color,
 ) {
     let mut buffer = vec![rgb::RGBA8::new(0, 0, 0, std::u8::MAX); image_width * image_height];
 
@@ -149,7 +152,7 @@ fn render(
                 let v = (j as RayTracingFloat + utils::random_double(&0.0, &1.0))
                     / (image_height - 1) as RayTracingFloat;
                 let r = cam.get_ray(&u, &v);
-                pixel_color += &ray_color(&r, world, *max_depth);
+                pixel_color += &ray_color(&r, background, world, *max_depth);
             }
             buffer[row_offset + i] = color::write_color(&pixel_color, samples_per_pixel);
         }
@@ -173,6 +176,7 @@ fn main() {
 
     // World
     let world = random_scene();
+    let background = color::Color::new(0.70, 0.80, 1.00);
 
     // Camera
     let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
@@ -200,5 +204,6 @@ fn main() {
         &samples_per_pixel,
         &max_depth,
         &world,
+        &background
     );
 }

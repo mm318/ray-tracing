@@ -7,6 +7,16 @@ use super::utils::RayTracingFloat;
 use super::vec3;
 
 pub trait Material {
+    fn emitted(&self, _u: &RayTracingFloat, _v: &RayTracingFloat, _p: &ray::Point) -> &color::Color {
+        use std::mem::MaybeUninit;
+        static mut DEFAULT_COLOR: MaybeUninit<color::Color> = MaybeUninit::uninit();
+        static INIT: std::sync::Once = std::sync::Once::new();
+        unsafe {
+            INIT.call_once(|| DEFAULT_COLOR = MaybeUninit::new(color::Color::zero()));
+            return &*DEFAULT_COLOR.as_ptr();
+        }
+    }
+
     fn scatter(
         &self,
         r_in: &ray::Ray,
@@ -144,5 +154,40 @@ impl Material for Dielectric {
         *scattered = ray::Ray::new(rec.point().clone(), direction, r_in.time().clone());
 
         return true;
+    }
+}
+
+//
+// Diffuse Light
+//
+pub struct DiffuseLight {
+    emit: std::rc::Rc<dyn texture::Texture>,
+}
+
+impl DiffuseLight {
+    pub fn new(color: color::Color) -> Self {
+        return Self {
+            emit: std::rc::Rc::new(texture::SolidColor::new(color)),
+        };
+    }
+
+    pub fn new_with_texture(a: std::rc::Rc<dyn texture::Texture>) -> Self {
+        return Self { emit: a };
+    }
+}
+
+impl Material for DiffuseLight {
+    fn emitted(&self, u: &RayTracingFloat, v: &RayTracingFloat, p: &ray::Point) -> &color::Color {
+        return self.emit.value(u, v, p);
+    }
+
+    fn scatter(
+        &self,
+        _r_in: &ray::Ray,
+        _rec: &hittable::HitRecord,
+        _attenuation: &mut color::Color,
+        _scattered: &mut ray::Ray,
+    ) -> bool {
+        return false;
     }
 }
