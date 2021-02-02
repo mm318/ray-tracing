@@ -103,7 +103,59 @@ fn random_scene() -> hittable::HittableList {
     ));
 }
 
-fn ray_color(r: &ray::Ray, background: &color::Color, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
+fn cornell_box() -> hittable::HittableList {
+    let red = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.65, 0.05, 0.05,
+    )));
+    let white = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.73, 0.73, 0.73,
+    )));
+    let green = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.12, 0.45, 0.15,
+    )));
+    let light = std::rc::Rc::new(material::DiffuseLight::new(color::Color::new(
+        15.0, 15.0, 15.0,
+    )));
+
+    let mut objects = hittable::HittableList::new_empty();
+    objects.add(std::rc::Rc::new(hittable_box::YZ_Rect::new(
+        0.0, 555.0, 0.0, 555.0, 555.0, green,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::YZ_Rect::new(
+        0.0, 555.0, 0.0, 555.0, 0.0, red,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XY_Rect::new(
+        0.0, 555.0, 0.0, 555.0, 555.0, white,
+    )));
+
+    return objects;
+}
+
+fn ray_color(
+    r: &ray::Ray,
+    background: &color::Color,
+    world: &dyn hittable::Hittable,
+    depth: u32,
+) -> color::Color {
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth == 0 {
         return color::Color::zero();
@@ -167,43 +219,80 @@ fn render(
 }
 
 fn main() {
-    // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400 as usize;
-    let image_height = (image_width as f64 / aspect_ratio) as usize;
-    let samples_per_pixel = 100 as usize;
     let max_depth = 50 as u32;
-
-    // World
-    let world = random_scene();
-    let background = color::Color::new(0.70, 0.80, 1.00);
-
-    // Camera
-    let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
-    let lookat = ray::Point::new(0.0, 0.0, 0.0);
-    let vup = ray::Vector::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
-    let aperture = 0.1;
-    let cam = camera::Camera::new(
-        &lookfrom,
-        &lookat,
-        &vup,
-        &20.0,
-        &aspect_ratio,
-        &aperture,
-        &dist_to_focus,
-        &0.0,
-        &1.0,
-    );
+    let vup = ray::Vector::new(0.0, 1.0, 0.0);
 
-    // Render
-    render(
-        &image_width,
-        &image_height,
-        &cam,
-        &samples_per_pixel,
-        &max_depth,
-        &world,
-        &background
-    );
+    if false {
+        // Image
+        let aspect_ratio = 16.0 / 9.0;
+        let image_width = 400 as usize;
+        let image_height = (image_width as f64 / aspect_ratio) as usize;
+        let samples_per_pixel = 100 as usize;
+
+        // World
+        let world = random_scene();
+        let background = color::Color::new(0.70, 0.80, 1.00);
+
+        // Camera
+        let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
+        let lookat = ray::Point::new(0.0, 0.0, 0.0);
+        let aperture = 0.1;
+        let cam = camera::Camera::new(
+            &lookfrom,
+            &lookat,
+            &vup,
+            &20.0,
+            &aspect_ratio,
+            &aperture,
+            &dist_to_focus,
+            &0.0,
+            &1.0,
+        );
+
+        // Render
+        render(
+            &image_width,
+            &image_height,
+            &cam,
+            &samples_per_pixel,
+            &max_depth,
+            &world,
+            &background,
+        );
+    } else {
+        let world = cornell_box();
+        let aspect_ratio = 1.0;
+        let image_width = 600 as usize;
+        let image_height = (image_width as f64 / aspect_ratio) as usize;
+        let samples_per_pixel = 200 as usize;
+        let background = color::Color::zero();
+        let lookfrom = ray::Point::new(278.0, 278.0, -800.0);
+        let lookat = ray::Point::new(278.0, 278.0, 0.0);
+        let vfov = 40.0;
+        let aperture = 0.0;
+
+        let cam = camera::Camera::new(
+            &lookfrom,
+            &lookat,
+            &vup,
+            &vfov,
+            &aspect_ratio,
+            &aperture,
+            &dist_to_focus,
+            &0.0,
+            &1.0,
+        );
+
+        // Render
+        render(
+            &image_width,
+            &image_height,
+            &cam,
+            &samples_per_pixel,
+            &max_depth,
+            &world,
+            &background,
+        );
+    }
 }

@@ -7,7 +7,12 @@ use super::utils::RayTracingFloat;
 use super::vec3;
 
 pub trait Material {
-    fn emitted(&self, _u: &RayTracingFloat, _v: &RayTracingFloat, _p: &ray::Point) -> &color::Color {
+    fn emitted(
+        &self,
+        _u: &RayTracingFloat,
+        _v: &RayTracingFloat,
+        _p: &ray::Point,
+    ) -> &color::Color {
         use std::mem::MaybeUninit;
         static mut DEFAULT_COLOR: MaybeUninit<color::Color> = MaybeUninit::uninit();
         static INIT: std::sync::Once = std::sync::Once::new();
