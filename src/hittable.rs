@@ -10,16 +10,20 @@ pub struct HitRecord {
     normal: ray::Vector,
     pub mat: std::rc::Weak<dyn material::Material>,
     pub t: RayTracingFloat,
+    pub u: RayTracingFloat,
+    pub v: RayTracingFloat,
     front_face: bool,
 }
 
 impl HitRecord {
     pub fn new() -> Self {
         return Self {
-            p: ray::Point::new(0.0, 0.0, 0.0),
-            normal: ray::Vector::new(0.0, 0.0, 0.0),
+            p: ray::Point::zero(),
+            normal: ray::Vector::zero(),
             mat: std::rc::Weak::<material::Metal>::new(),
-            t: 0.0,
+            t: RayTracingFloat::MIN,
+            u: RayTracingFloat::MIN,
+            v: RayTracingFloat::MIN,
             front_face: false,
         };
     }

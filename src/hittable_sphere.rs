@@ -1,7 +1,7 @@
 use super::aabb;
+use super::hittable;
 use super::material;
 use super::ray;
-use super::hittable;
 use super::utils::RayTracingFloat;
 use super::vec3;
 
@@ -33,6 +33,21 @@ impl Sphere {
 
     pub fn radius(&self) -> &RayTracingFloat {
         return &self.radius;
+    }
+
+    fn get_sphere_uv(p: &ray::Point, u: &mut RayTracingFloat, v: &mut RayTracingFloat) {
+        // p: a given point on the sphere of radius one, centered at the origin.
+        // u: returned value [0,1] of angle around the Y axis from X=-1.
+        // v: returned value [0,1] of angle from Y=-1 to Y=+1.
+        //     <1 0 0> yields <0.50 0.50>       <-1  0  0> yields <0.00 0.50>
+        //     <0 1 0> yields <0.50 1.00>       < 0 -1  0> yields <0.50 0.00>
+        //     <0 0 1> yields <0.25 0.50>       < 0  0 -1> yields <0.75 0.50>
+
+        let theta = (-p.y()).acos();
+        let phi = (-p.z()).atan2(p.x()) + std::f64::consts::PI;
+
+        *u = phi / (2.0 * std::f64::consts::PI);
+        *v = theta / std::f64::consts::PI;
     }
 }
 
@@ -68,6 +83,7 @@ impl hittable::Hittable for Sphere {
         rec.p = r.at(&rec.t);
         let outward_normal = (&rec.p - self.center()) / self.radius();
         rec.set_face_normal(r, &outward_normal);
+        Self::get_sphere_uv(&outward_normal, &mut rec.u, &mut rec.v);
         rec.mat = std::rc::Rc::downgrade(&self.mat);
 
         return true;

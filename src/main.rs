@@ -3,6 +3,7 @@ mod aabb;
 mod camera;
 mod color;
 mod hittable;
+mod hittable_box;
 mod hittable_sphere;
 mod material;
 mod ray;
