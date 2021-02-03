@@ -3,8 +3,11 @@ mod aabb;
 mod camera;
 mod color;
 mod hittable;
+mod hittable_box;
+mod hittable_sphere;
 mod material;
 mod ray;
+mod texture;
 mod utils;
 mod vec3;
 
@@ -13,9 +16,12 @@ use utils::RayTracingFloat;
 fn random_scene() -> hittable::HittableList {
     let mut objects = hittable::HittableList::new_empty();
 
-    let ground_material =
-        std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.5, 0.5, 0.5)));
-    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+    let checker = std::rc::Rc::new(texture::CheckerTexture::new(
+        color::Color::new(0.2, 0.3, 0.1),
+        color::Color::new(0.9, 0.9, 0.9),
+    ));
+    let ground_material = std::rc::Rc::new(material::Lambertian::new_with_texture(checker));
+    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
         ray::Point::new(0.0, -1000.0, 0.0),
         1000.0,
         ground_material,
@@ -39,7 +45,7 @@ fn random_scene() -> hittable::HittableList {
                     let sphere_material = std::rc::Rc::new(material::Lambertian::new(albedo));
                     let center2 =
                         &center + ray::Vector::new(0.0, utils::random_double(&0.0, &0.5), 0.0);
-                    objects.add(std::rc::Rc::new(hittable::MovingSphere::new(
+                    objects.add(std::rc::Rc::new(hittable_sphere::MovingSphere::new(
                         center,
                         center2,
                         0.0,
@@ -52,7 +58,7 @@ fn random_scene() -> hittable::HittableList {
                     let albedo = color::Color::random(&0.5, &1.0);
                     let fuzz = utils::random_double(&0.0, &0.5);
                     let sphere_material = std::rc::Rc::new(material::Metal::new(albedo, fuzz));
-                    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+                    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
                         center,
                         0.2,
                         sphere_material,
@@ -60,7 +66,7 @@ fn random_scene() -> hittable::HittableList {
                 } else {
                     // glass
                     let sphere_material = std::rc::Rc::new(material::Dielectric::new(1.5));
-                    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+                    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
                         center,
                         0.2,
                         sphere_material,
@@ -71,21 +77,21 @@ fn random_scene() -> hittable::HittableList {
     }
 
     let material1 = std::rc::Rc::new(material::Dielectric::new(1.5));
-    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
         ray::Point::new(0.0, 1.0, 0.0),
         1.0,
         material1,
     )));
 
     let material2 = std::rc::Rc::new(material::Lambertian::new(color::Color::new(0.4, 0.2, 0.1)));
-    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
         ray::Point::new(-4.0, 1.0, 0.0),
         1.0,
         material2,
     )));
 
     let material3 = std::rc::Rc::new(material::Metal::new(color::Color::new(0.7, 0.6, 0.5), 0.0));
-    objects.add(std::rc::Rc::new(hittable::Sphere::new(
+    objects.add(std::rc::Rc::new(hittable_sphere::Sphere::new(
         ray::Point::new(4.0, 1.0, 0.0),
         1.0,
         material3,
@@ -97,28 +103,112 @@ fn random_scene() -> hittable::HittableList {
     ));
 }
 
-fn ray_color(r: &ray::Ray, world: &dyn hittable::Hittable, depth: u32) -> color::Color {
+fn cornell_box() -> hittable::HittableList {
+    let red = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.65, 0.05, 0.05,
+    )));
+    let white = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.73, 0.73, 0.73,
+    )));
+    let green = std::rc::Rc::new(material::Lambertian::new(color::Color::new(
+        0.12, 0.45, 0.15,
+    )));
+    let light = std::rc::Rc::new(material::DiffuseLight::new(color::Color::new(
+        15.0, 15.0, 15.0,
+    )));
+
+    let mut objects = hittable::HittableList::new_empty();
+
+    objects.add(std::rc::Rc::new(hittable_box::YZ_Rect::new(
+        0.0, 555.0, 0.0, 555.0, 555.0, green,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::YZ_Rect::new(
+        0.0, 555.0, 0.0, 555.0, 0.0, red,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        213.0, 343.0, 227.0, 332.0, 554.0, light,
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        0.0,
+        white.clone(),
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XZ_Rect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+    objects.add(std::rc::Rc::new(hittable_box::XY_Rect::new(
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
+    )));
+
+    let mut box1 = std::rc::Rc::new(hittable_box::Box::new(
+        ray::Point::new(0.0, 0.0, 0.0),
+        ray::Point::new(165.0, 330.0, 165.0),
+        white.clone(),
+    )) as std::rc::Rc<dyn hittable::Hittable>;
+    box1 = std::rc::Rc::new(hittable::Rotate_Y::new(box1, 15.0));
+    box1 = std::rc::Rc::new(hittable::Translate::new(
+        box1,
+        ray::Vector::new(265.0, 0.0, 295.0),
+    ));
+    objects.add(box1);
+
+    let mut box2 = std::rc::Rc::new(hittable_box::Box::new(
+        ray::Point::new(0.0, 0.0, 0.0),
+        ray::Point::new(165.0, 165.0, 165.0),
+        white,
+    )) as std::rc::Rc<dyn hittable::Hittable>;
+    box2 = std::rc::Rc::new(hittable::Rotate_Y::new(box2, -18.0));
+    box2 = std::rc::Rc::new(hittable::Translate::new(
+        box2,
+        ray::Vector::new(130.0, 0.0, 65.0),
+    ));
+    objects.add(box2);
+
+    return objects;
+}
+
+fn ray_color(
+    r: &ray::Ray,
+    background: &color::Color,
+    world: &dyn hittable::Hittable,
+    depth: u32,
+) -> color::Color {
+    // If we've exceeded the ray bounce limit, no more light is gathered.
     if depth == 0 {
         return color::Color::zero();
     }
 
+    // If the ray hits nothing, return the background color.
     let mut rec = hittable::HitRecord::new();
-    if world.hit(&r, &0.001, &RayTracingFloat::INFINITY, &mut rec) {
-        let mut scattered = ray::Ray::zero();
-        let mut attenuation = color::Color::zero();
-        if rec
-            .material()
-            .scatter(r, &rec, &mut attenuation, &mut scattered)
-        {
-            return attenuation * ray_color(&scattered, world, depth - 1);
-        } else {
-            return color::Color::zero();
-        }
+    if !world.hit(&r, &0.001, &RayTracingFloat::INFINITY, &mut rec) {
+        return background.clone();
     }
 
-    let unit_direction = r.direction().unit_vector();
-    let t = 0.5 * (unit_direction.y() + 1.0);
-    return color::Color::new(1.0, 1.0, 1.0) * (1.0 - t) + color::Color::new(0.5, 0.7, 1.0) * t;
+    let mut scattered = ray::Ray::zero();
+    let mut attenuation = color::Color::zero();
+    let emitted = rec.material().emitted(&rec.u, &rec.v, &rec.p).clone();
+
+    if !rec
+        .material()
+        .scatter(r, &rec, &mut attenuation, &mut scattered)
+    {
+        return emitted;
+    }
+
+    return emitted + attenuation * ray_color(&scattered, background, world, depth - 1);
 }
 
 fn render(
@@ -128,6 +218,7 @@ fn render(
     samples_per_pixel: &usize,
     max_depth: &u32,
     world: &dyn hittable::Hittable,
+    background: &color::Color,
 ) {
     let mut buffer = vec![rgb::RGBA8::new(0, 0, 0, std::u8::MAX); image_width * image_height];
 
@@ -143,7 +234,7 @@ fn render(
                 let v = (j as RayTracingFloat + utils::random_double(&0.0, &1.0))
                     / (image_height - 1) as RayTracingFloat;
                 let r = cam.get_ray(&u, &v);
-                pixel_color += &ray_color(&r, world, *max_depth);
+                pixel_color += &ray_color(&r, background, world, *max_depth);
             }
             buffer[row_offset + i] = color::write_color(&pixel_color, samples_per_pixel);
         }
@@ -158,41 +249,80 @@ fn render(
 }
 
 fn main() {
-    // Image
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 400 as usize;
-    let image_height = (image_width as f64 / aspect_ratio) as usize;
-    let samples_per_pixel = 100 as usize;
     let max_depth = 50 as u32;
-
-    // World
-    let world = random_scene();
-
-    // Camera
-    let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
-    let lookat = ray::Point::new(0.0, 0.0, 0.0);
-    let vup = ray::Vector::new(0.0, 1.0, 0.0);
     let dist_to_focus = 10.0;
-    let aperture = 0.1;
-    let cam = camera::Camera::new(
-        &lookfrom,
-        &lookat,
-        &vup,
-        &20.0,
-        &aspect_ratio,
-        &aperture,
-        &dist_to_focus,
-        &0.0,
-        &1.0,
-    );
+    let vup = ray::Vector::new(0.0, 1.0, 0.0);
 
-    // Render
-    render(
-        &image_width,
-        &image_height,
-        &cam,
-        &samples_per_pixel,
-        &max_depth,
-        &world,
-    );
+    if false {
+        // Image
+        let aspect_ratio = 16.0 / 9.0;
+        let image_width = 400 as usize;
+        let image_height = (image_width as f64 / aspect_ratio) as usize;
+        let samples_per_pixel = 100 as usize;
+
+        // World
+        let world = random_scene();
+        let background = color::Color::new(0.70, 0.80, 1.00);
+
+        // Camera
+        let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
+        let lookat = ray::Point::new(0.0, 0.0, 0.0);
+        let aperture = 0.1;
+        let cam = camera::Camera::new(
+            &lookfrom,
+            &lookat,
+            &vup,
+            &20.0,
+            &aspect_ratio,
+            &aperture,
+            &dist_to_focus,
+            &0.0,
+            &1.0,
+        );
+
+        // Render
+        render(
+            &image_width,
+            &image_height,
+            &cam,
+            &samples_per_pixel,
+            &max_depth,
+            &world,
+            &background,
+        );
+    } else {
+        let world = cornell_box();
+        let aspect_ratio = 1.0;
+        let image_width = 600 as usize;
+        let image_height = (image_width as f64 / aspect_ratio) as usize;
+        let samples_per_pixel = 200 as usize;
+        let background = color::Color::zero();
+        let lookfrom = ray::Point::new(278.0, 278.0, -800.0);
+        let lookat = ray::Point::new(278.0, 278.0, 0.0);
+        let vfov = 40.0;
+        let aperture = 0.0;
+
+        let cam = camera::Camera::new(
+            &lookfrom,
+            &lookat,
+            &vup,
+            &vfov,
+            &aspect_ratio,
+            &aperture,
+            &dist_to_focus,
+            &0.0,
+            &1.0,
+        );
+
+        // Render
+        render(
+            &image_width,
+            &image_height,
+            &cam,
+            &samples_per_pixel,
+            &max_depth,
+            &world,
+            &background,
+        );
+    }
 }

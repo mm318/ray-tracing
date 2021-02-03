@@ -6,20 +6,24 @@ use super::utils::RayTracingFloat;
 use super::vec3;
 
 pub struct HitRecord {
-    p: ray::Point,
+    pub p: ray::Point,
     normal: ray::Vector,
-    mat: std::rc::Weak<dyn material::Material>,
-    t: RayTracingFloat,
+    pub mat: std::rc::Weak<dyn material::Material>,
+    pub t: RayTracingFloat,
+    pub u: RayTracingFloat,
+    pub v: RayTracingFloat,
     front_face: bool,
 }
 
 impl HitRecord {
     pub fn new() -> Self {
         return Self {
-            p: ray::Point::new(0.0, 0.0, 0.0),
-            normal: ray::Vector::new(0.0, 0.0, 0.0),
+            p: ray::Point::zero(),
+            normal: ray::Vector::zero(),
             mat: std::rc::Weak::<material::Metal>::new(),
-            t: 0.0,
+            t: RayTracingFloat::MIN,
+            u: RayTracingFloat::MIN,
+            v: RayTracingFloat::MIN,
             front_face: false,
         };
     }
@@ -151,6 +155,177 @@ impl Hittable for HittableList {
 }
 
 //
+// Translation transform on another Hittable
+//
+pub struct Translate {
+    ptr: std::rc::Rc<dyn Hittable>,
+    offset: ray::Vector,
+}
+
+impl Translate {
+    pub fn new(p: std::rc::Rc<dyn Hittable>, displacement: ray::Vector) -> Self {
+        return Self {
+            ptr: p,
+            offset: displacement,
+        };
+    }
+}
+
+impl Hittable for Translate {
+    fn hit(
+        &self,
+        r: &ray::Ray,
+        t_min: &RayTracingFloat,
+        t_max: &RayTracingFloat,
+        rec: &mut HitRecord,
+    ) -> bool {
+        let moved_r = ray::Ray::new(
+            r.origin() - &self.offset,
+            r.direction().clone(),
+            r.time().clone(),
+        );
+        if !self.ptr.hit(&moved_r, t_min, t_max, rec) {
+            return false;
+        }
+
+        rec.p += &self.offset;
+        let outward_normal = rec.normal.clone();
+        rec.set_face_normal(&moved_r, &outward_normal);
+
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        time0: &RayTracingFloat,
+        time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        if !self.ptr.bounding_box(time0, time1, output_box) {
+            return false;
+        }
+
+        *output_box = aabb::AxisAlignedBoundingBoxes::new(
+            output_box.min() + &self.offset,
+            output_box.max() + &self.offset,
+        );
+        return true;
+    }
+}
+
+//
+// Rotation transform on another Hittable
+//
+pub struct Rotate_Y {
+    ptr: std::rc::Rc<dyn Hittable>,
+    sin_theta: RayTracingFloat,
+    cos_theta: RayTracingFloat,
+    hasbox: bool,
+    bbox: aabb::AxisAlignedBoundingBoxes,
+}
+
+impl Rotate_Y {
+    pub fn new(p: std::rc::Rc<dyn Hittable>, angle: RayTracingFloat) -> Self {
+        let radians = angle.to_radians();
+        let sin_theta = radians.sin();
+        let cos_theta = radians.cos();
+        let mut bbox = aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
+        let hasbox = p.bounding_box(&0.0, &1.0, &mut bbox);
+
+        let mut min = ray::Point::new(
+            RayTracingFloat::INFINITY,
+            RayTracingFloat::INFINITY,
+            RayTracingFloat::INFINITY,
+        );
+        let mut max = ray::Point::new(
+            -RayTracingFloat::INFINITY,
+            -RayTracingFloat::INFINITY,
+            -RayTracingFloat::INFINITY,
+        );
+
+        for i in 0..2 {
+            for j in 0..2 {
+                for k in 0..2 {
+                    let x = (i as RayTracingFloat) * bbox.max().x()
+                        + ((1 - i) as RayTracingFloat) * bbox.min().x();
+                    let y = (j as RayTracingFloat) * bbox.max().y()
+                        + ((1 - j) as RayTracingFloat) * bbox.min().y();
+                    let z = (k as RayTracingFloat) * bbox.max().z()
+                        + ((1 - k) as RayTracingFloat) * bbox.min().z();
+
+                    let newx = cos_theta * x + sin_theta * z;
+                    let newz = -sin_theta * x + cos_theta * z;
+
+                    let tester = ray::Vector::new(newx, y as RayTracingFloat, newz);
+
+                    for c in 0..3 {
+                        min[c] = min[c].min(tester[c]);
+                        max[c] = max[c].max(tester[c]);
+                    }
+                }
+            }
+        }
+
+        return Self {
+            ptr: p,
+            sin_theta: sin_theta,
+            cos_theta: cos_theta,
+            hasbox: hasbox,
+            bbox: aabb::AxisAlignedBoundingBoxes::new(min, max),
+        };
+    }
+}
+
+impl Hittable for Rotate_Y {
+    fn hit(
+        &self,
+        r: &ray::Ray,
+        t_min: &RayTracingFloat,
+        t_max: &RayTracingFloat,
+        rec: &mut HitRecord,
+    ) -> bool {
+        let mut origin = r.origin().clone();
+        let mut direction = r.direction().clone();
+
+        origin[0] = self.cos_theta * r.origin()[0] - self.sin_theta * r.origin()[2];
+        origin[2] = self.sin_theta * r.origin()[0] + self.cos_theta * r.origin()[2];
+
+        direction[0] = self.cos_theta * r.direction()[0] - self.sin_theta * r.direction()[2];
+        direction[2] = self.sin_theta * r.direction()[0] + self.cos_theta * r.direction()[2];
+
+        let rotated_r = ray::Ray::new(origin, direction, r.time().clone());
+
+        if !self.ptr.hit(&rotated_r, t_min, t_max, rec) {
+            return false;
+        }
+
+        let mut p = rec.p.clone();
+        let mut normal = rec.normal.clone();
+
+        p[0] = self.cos_theta * rec.p[0] + self.sin_theta * rec.p[2];
+        p[2] = -self.sin_theta * rec.p[0] + self.cos_theta * rec.p[2];
+
+        normal[0] = self.cos_theta * rec.normal[0] + self.sin_theta * rec.normal[2];
+        normal[2] = -self.sin_theta * rec.normal[0] + self.cos_theta * rec.normal[2];
+
+        rec.p = p;
+        rec.set_face_normal(&rotated_r, &normal);
+
+        return true;
+    }
+
+    fn bounding_box(
+        &self,
+        _time0: &RayTracingFloat,
+        _time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        *output_box = self.bbox.clone();
+        return self.hasbox;
+    }
+}
+
+//
 // Bounding Volume Hierarchies Node
 //
 pub struct BVH_Node {
@@ -247,191 +422,11 @@ impl Hittable for BVH_Node {
 
     fn bounding_box(
         &self,
-        time0: &RayTracingFloat,
-        time1: &RayTracingFloat,
+        _time0: &RayTracingFloat,
+        _time1: &RayTracingFloat,
         output_box: &mut aabb::AxisAlignedBoundingBoxes,
     ) -> bool {
         *output_box = self.bounding_box.clone();
-        return true;
-    }
-}
-
-//
-// Sphere
-//
-pub struct Sphere {
-    center: ray::Point,
-    radius: RayTracingFloat,
-    mat: std::rc::Rc<dyn material::Material>,
-}
-
-impl Sphere {
-    pub fn new(
-        cen: ray::Point,
-        r: RayTracingFloat,
-        m: std::rc::Rc<dyn material::Material>,
-    ) -> Self {
-        return Self {
-            center: cen,
-            radius: r,
-            mat: m,
-        };
-    }
-
-    pub fn center(&self) -> &ray::Point {
-        return &self.center;
-    }
-
-    pub fn radius(&self) -> &RayTracingFloat {
-        return &self.radius;
-    }
-}
-
-impl Hittable for Sphere {
-    fn hit(
-        &self,
-        r: &ray::Ray,
-        t_min: &RayTracingFloat,
-        t_max: &RayTracingFloat,
-        rec: &mut HitRecord,
-    ) -> bool {
-        let oc = r.origin() - self.center();
-        let a = r.direction().length_squared();
-        let half_b = vec3::dot(&oc, r.direction());
-        let c = oc.length_squared() - self.radius() * self.radius();
-
-        let discriminant = half_b * half_b - a * c;
-        if discriminant < 0.0 {
-            return false;
-        }
-
-        let sqrtd = discriminant.sqrt();
-        // Find the nearest root that lies in the acceptable range.
-        let mut root = (-half_b - sqrtd) / a;
-        if root < *t_min || *t_max < root {
-            root = (-half_b + sqrtd) / a;
-            if root < *t_min || *t_max < root {
-                return false;
-            }
-        }
-
-        rec.t = root;
-        rec.p = r.at(&rec.t);
-        let outward_normal = (&rec.p - self.center()) / self.radius();
-        rec.set_face_normal(r, &outward_normal);
-        rec.mat = std::rc::Rc::downgrade(&self.mat);
-
-        return true;
-    }
-
-    fn bounding_box(
-        &self,
-        time0: &RayTracingFloat,
-        time1: &RayTracingFloat,
-        output_box: &mut aabb::AxisAlignedBoundingBoxes,
-    ) -> bool {
-        *output_box = aabb::AxisAlignedBoundingBoxes::new(
-            self.center() - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-            self.center() + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-        );
-        return true;
-    }
-}
-
-//
-// Moving Sphere
-//
-pub struct MovingSphere {
-    center0: ray::Point,
-    center1: ray::Point,
-    time0: RayTracingFloat,
-    time1: RayTracingFloat,
-    radius: RayTracingFloat,
-    mat: std::rc::Rc<dyn material::Material>,
-}
-
-impl MovingSphere {
-    pub fn new(
-        cen0: ray::Point,
-        cen1: ray::Point,
-        _time0: RayTracingFloat,
-        _time1: RayTracingFloat,
-        r: RayTracingFloat,
-        m: std::rc::Rc<dyn material::Material>,
-    ) -> Self {
-        return Self {
-            center0: cen0,
-            center1: cen1,
-            time0: _time0,
-            time1: _time1,
-            radius: r,
-            mat: m,
-        };
-    }
-
-    pub fn center(&self, time: &RayTracingFloat) -> ray::Point {
-        return &self.center0
-            + (&self.center1 - &self.center0)
-                * ((time - &self.time0) / (&self.time1 - &self.time0));
-    }
-
-    pub fn radius(&self) -> &RayTracingFloat {
-        return &self.radius;
-    }
-}
-
-impl Hittable for MovingSphere {
-    fn hit(
-        &self,
-        r: &ray::Ray,
-        t_min: &RayTracingFloat,
-        t_max: &RayTracingFloat,
-        rec: &mut HitRecord,
-    ) -> bool {
-        let oc = r.origin() - self.center(r.time());
-        let a = r.direction().length_squared();
-        let half_b = vec3::dot(&oc, r.direction());
-        let c = oc.length_squared() - self.radius() * self.radius();
-
-        let discriminant = half_b * half_b - a * c;
-        if discriminant < 0.0 {
-            return false;
-        }
-
-        let sqrtd = discriminant.sqrt();
-        // Find the nearest root that lies in the acceptable range.
-        let mut root = (-half_b - sqrtd) / a;
-        if root < *t_min || *t_max < root {
-            root = (-half_b + sqrtd) / a;
-            if root < *t_min || *t_max < root {
-                return false;
-            }
-        }
-
-        rec.t = root;
-        rec.p = r.at(&rec.t);
-        let outward_normal = (&rec.p - self.center(r.time())) / self.radius();
-        rec.set_face_normal(r, &outward_normal);
-        rec.mat = std::rc::Rc::downgrade(&self.mat);
-
-        return true;
-    }
-
-    fn bounding_box(
-        &self,
-        time0: &RayTracingFloat,
-        time1: &RayTracingFloat,
-        output_box: &mut aabb::AxisAlignedBoundingBoxes,
-    ) -> bool {
-        let box0 = aabb::AxisAlignedBoundingBoxes::new(
-            self.center(time0) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-            self.center(time0) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-        );
-        let box1 = aabb::AxisAlignedBoundingBoxes::new(
-            self.center(time1) - ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-            self.center(time1) + ray::Vector::new(*self.radius(), *self.radius(), *self.radius()),
-        );
-        *output_box = aabb::surrounding_box(&box0, &box1);
         return true;
     }
 }
