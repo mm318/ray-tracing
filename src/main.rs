@@ -118,6 +118,7 @@ fn cornell_box() -> hittable::HittableList {
     )));
 
     let mut objects = hittable::HittableList::new_empty();
+
     objects.add(std::rc::Rc::new(hittable_box::YZ_Rect::new(
         0.0, 555.0, 0.0, 555.0, 555.0, green,
     )));
@@ -144,8 +145,37 @@ fn cornell_box() -> hittable::HittableList {
         white.clone(),
     )));
     objects.add(std::rc::Rc::new(hittable_box::XY_Rect::new(
-        0.0, 555.0, 0.0, 555.0, 555.0, white,
+        0.0,
+        555.0,
+        0.0,
+        555.0,
+        555.0,
+        white.clone(),
     )));
+
+    let mut box1 = std::rc::Rc::new(hittable_box::Box::new(
+        ray::Point::new(0.0, 0.0, 0.0),
+        ray::Point::new(165.0, 330.0, 165.0),
+        white.clone(),
+    )) as std::rc::Rc<dyn hittable::Hittable>;
+    box1 = std::rc::Rc::new(hittable::Rotate_Y::new(box1, 15.0));
+    box1 = std::rc::Rc::new(hittable::Translate::new(
+        box1,
+        ray::Vector::new(265.0, 0.0, 295.0),
+    ));
+    objects.add(box1);
+
+    let mut box2 = std::rc::Rc::new(hittable_box::Box::new(
+        ray::Point::new(0.0, 0.0, 0.0),
+        ray::Point::new(165.0, 165.0, 165.0),
+        white,
+    )) as std::rc::Rc<dyn hittable::Hittable>;
+    box2 = std::rc::Rc::new(hittable::Rotate_Y::new(box2, -18.0));
+    box2 = std::rc::Rc::new(hittable::Translate::new(
+        box2,
+        ray::Vector::new(130.0, 0.0, 65.0),
+    ));
+    objects.add(box2);
 
     return objects;
 }

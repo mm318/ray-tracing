@@ -234,3 +234,98 @@ impl hittable::Hittable for YZ_Rect {
         return true;
     }
 }
+
+//
+// Box
+//
+pub struct Box {
+    box_min: ray::Point,
+    box_max: ray::Point,
+    sides: hittable::HittableList,
+}
+
+impl Box {
+    pub fn new(p0: ray::Point, p1: ray::Point, ptr: std::rc::Rc<dyn material::Material>) -> Self {
+        let mut sides = hittable::HittableList::new_empty();
+
+        sides.add(std::rc::Rc::new(XY_Rect::new(
+            p0.x(),
+            p1.x(),
+            p0.y(),
+            p1.y(),
+            p1.z(),
+            ptr.clone(),
+        )));
+        sides.add(std::rc::Rc::new(XY_Rect::new(
+            p0.x(),
+            p1.x(),
+            p0.y(),
+            p1.y(),
+            p0.z(),
+            ptr.clone(),
+        )));
+
+        sides.add(std::rc::Rc::new(XZ_Rect::new(
+            p0.x(),
+            p1.x(),
+            p0.z(),
+            p1.z(),
+            p1.y(),
+            ptr.clone(),
+        )));
+        sides.add(std::rc::Rc::new(XZ_Rect::new(
+            p0.x(),
+            p1.x(),
+            p0.z(),
+            p1.z(),
+            p0.y(),
+            ptr.clone(),
+        )));
+
+        sides.add(std::rc::Rc::new(YZ_Rect::new(
+            p0.y(),
+            p1.y(),
+            p0.z(),
+            p1.z(),
+            p1.x(),
+            ptr.clone(),
+        )));
+        sides.add(std::rc::Rc::new(YZ_Rect::new(
+            p0.y(),
+            p1.y(),
+            p0.z(),
+            p1.z(),
+            p0.x(),
+            ptr,
+        )));
+
+        return Self {
+            box_min: p0,
+            box_max: p1,
+            sides: sides,
+        };
+    }
+}
+
+impl hittable::Hittable for Box {
+    fn hit(
+        &self,
+        r: &ray::Ray,
+        t_min: &RayTracingFloat,
+        t_max: &RayTracingFloat,
+        rec: &mut hittable::HitRecord,
+    ) -> bool {
+        return self.sides.hit(r, t_min, t_max, rec);
+    }
+
+    fn bounding_box(
+        &self,
+        _time0: &RayTracingFloat,
+        _time1: &RayTracingFloat,
+        output_box: &mut aabb::AxisAlignedBoundingBoxes,
+    ) -> bool {
+        *output_box =
+            aabb::AxisAlignedBoundingBoxes::new(self.box_min.clone(), self.box_max.clone());
+        return true;
+    }
+}
