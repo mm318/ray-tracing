@@ -386,8 +386,8 @@ impl BVH_Node {
             aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
         let mut box_right =
             aabb::AxisAlignedBoundingBoxes::new(ray::Point::zero(), ray::Point::zero());
-        if !left.bounding_box(&0.0, &0.0, &mut box_left)
-            || !right.bounding_box(&0.0, &0.0, &mut box_right)
+        if !left.bounding_box(time0, time1, &mut box_left)
+            || !right.bounding_box(time0, time1, &mut box_right)
         {
             eprintln!("No bounding box in bvh_node constructor.");
         }

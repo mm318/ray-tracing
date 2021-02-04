@@ -254,25 +254,28 @@ fn main() {
     let vup = ray::Vector::new(0.0, 1.0, 0.0);
 
     if false {
-        // Image
-        let aspect_ratio = 16.0 / 9.0;
-        let image_width = 400 as usize;
-        let image_height = (image_width as f64 / aspect_ratio) as usize;
-        let samples_per_pixel = 100 as usize;
+        // settings taken from "Ray Tracing in One Weekend"
 
         // World
         let world = random_scene();
         let background = color::Color::new(0.70, 0.80, 1.00);
 
+        // Image
+        let aspect_ratio = 3.0 / 2.0;
+        let image_width = 1200 as usize;
+        let image_height = (image_width as f64 / aspect_ratio) as usize;
+        let samples_per_pixel = 500 as usize;
+
         // Camera
-        let lookfrom = ray::Point::new(12.0, 2.0, 3.0);
+        let lookfrom = ray::Point::new(13.0, 2.0, 3.0);
         let lookat = ray::Point::new(0.0, 0.0, 0.0);
+        let vfov = 20.0;
         let aperture = 0.1;
         let cam = camera::Camera::new(
             &lookfrom,
             &lookat,
             &vup,
-            &20.0,
+            &vfov,
             &aspect_ratio,
             &aperture,
             &dist_to_focus,
@@ -291,17 +294,23 @@ fn main() {
             &background,
         );
     } else {
+        // settings taken from "Ray Tracing: The Next Weekend"
+
+        // World
         let world = cornell_box();
+        let background = color::Color::zero();
+
+        // Image
         let aspect_ratio = 1.0;
         let image_width = 600 as usize;
         let image_height = (image_width as f64 / aspect_ratio) as usize;
         let samples_per_pixel = 200 as usize;
-        let background = color::Color::zero();
+
+        // Camera
         let lookfrom = ray::Point::new(278.0, 278.0, -800.0);
         let lookat = ray::Point::new(278.0, 278.0, 0.0);
         let vfov = 40.0;
         let aperture = 0.0;
-
         let cam = camera::Camera::new(
             &lookfrom,
             &lookat,
